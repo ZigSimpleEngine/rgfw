@@ -3,18 +3,39 @@ const std = @import("std");
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+
     const mod = b.addModule("rgfw", .{
-        .root_source_file = b.path("src/root.zig"),
+        .root_source_file = b.path("src/rgfw.zig"),
         .target = target,
         .optimize = optimize,
+        .link_libc = true,
     });
+
     mod.addIncludePath(b.path("."));
-
-    const tests = b.addTest(.{
-        .root_module = mod,
+    mod.addCSourceFile(.{
+        .file = b.path("RGFW.c"),
+        .flags = &.{
+            "-DRGFW_OPENGL",
+        },
     });
-    const run_tests = b.addRunArtifact(tests);
 
-    const test_step = b.step("test", "Run rgfw wrapper tests");
-    test_step.dependOn(&run_tests.step);
+    var example_exe = b.addExecutable(.{
+        .name = "example",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/example.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    var example_install = b.addInstallArtifact(example_exe, .{});
+
+    example_exe.root_module.addImport("rgfw", mod);
+    example_exe.root_module.linkSystemLibrary("opengl32", .{});
+    example_exe.root_module.linkSystemLibrary("gdi32", .{});
+
+    var example_run = b.addRunArtifact(example_exe);
+
+    var run_example_exe = b.step("example", "Build and run example.zig");
+    run_example_exe.dependOn(&example_install.step);
+    run_example_exe.dependOn(&example_run.step);
 }
