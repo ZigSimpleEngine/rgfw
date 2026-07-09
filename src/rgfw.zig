@@ -47,46 +47,377 @@ pub const WlSurface = opaque {};
 /// Opaque handle to a Wayland EGL window.
 pub const WlEglWindow = opaque {};
 
-/// Abstract physical keycode.
-pub const Key = u8;
+/// Abstract physical keycode (platform-independent mapping).
+pub const Key = enum(u8) {
+    none = c.RGFW_keyNULL,
+    escape = c.RGFW_keyEscape,
+    backtick = c.RGFW_keyBacktick,
+    space = c.RGFW_keySpace,
+    enter = c.RGFW_keyEnter,
+    tab = c.RGFW_keyTab,
+    backspace = c.RGFW_keyBackSpace,
+    delete = c.RGFW_keyDelete,
+    return_key = c.RGFW_keyReturn,
+    minus = c.RGFW_keyMinus,
+    equal = c.RGFW_keyEqual,
+    equals = c.RGFW_keyEquals,
+    period = c.RGFW_keyPeriod,
+    comma = c.RGFW_keyComma,
+    slash = c.RGFW_keySlash,
+    bracket = c.RGFW_keyBracket,
+    close_bracket = c.RGFW_keyCloseBracket,
+    semicolon = c.RGFW_keySemicolon,
+    apostrophe = c.RGFW_keyApostrophe,
+    backslash = c.RGFW_keyBackSlash,
+    caps_lock = c.RGFW_keyCapsLock,
+    shift_left = c.RGFW_keyShiftL,
+    control_left = c.RGFW_keyControlL,
+    alt_left = c.RGFW_keyAltL,
+    super_left = c.RGFW_keySuperL,
+    shift_right = c.RGFW_keyShiftR,
+    control_right = c.RGFW_keyControlR,
+    alt_right = c.RGFW_keyAltR,
+    super_right = c.RGFW_keySuperR,
+    up = c.RGFW_keyUp,
+    down = c.RGFW_keyDown,
+    left = c.RGFW_keyLeft,
+    right = c.RGFW_keyRight,
+    insert = c.RGFW_keyInsert,
+    menu = c.RGFW_keyMenu,
+    home = c.RGFW_keyHome,
+    end = c.RGFW_keyEnd,
+    page_up = c.RGFW_keyPageUp,
+    page_down = c.RGFW_keyPageDown,
+    num_lock = c.RGFW_keyNumLock,
+    pad_slash = c.RGFW_keyPadSlash,
+    pad_multiply = c.RGFW_keyPadMultiply,
+    pad_plus = c.RGFW_keyPadPlus,
+    pad_minus = c.RGFW_keyPadMinus,
+    pad_equal = c.RGFW_keyPadEqual,
+    pad_equals = c.RGFW_keyPadEquals,
+    pad_1 = c.RGFW_keyPad1,
+    pad_2 = c.RGFW_keyPad2,
+    pad_3 = c.RGFW_keyPad3,
+    pad_4 = c.RGFW_keyPad4,
+    pad_5 = c.RGFW_keyPad5,
+    pad_6 = c.RGFW_keyPad6,
+    pad_7 = c.RGFW_keyPad7,
+    pad_8 = c.RGFW_keyPad8,
+    pad_9 = c.RGFW_keyPad9,
+    pad_0 = c.RGFW_keyPad0,
+    pad_period = c.RGFW_keyPadPeriod,
+    pad_return = c.RGFW_keyPadReturn,
+    scroll_lock = c.RGFW_keyScrollLock,
+    print_screen = c.RGFW_keyPrintScreen,
+    pause = c.RGFW_keyPause,
+    world_1 = c.RGFW_keyWorld1,
+    world_2 = c.RGFW_keyWorld2,
+    a = c.RGFW_keyA,
+    b = c.RGFW_keyB,
+    c = c.RGFW_keyC,
+    d = c.RGFW_keyD,
+    e = c.RGFW_keyE,
+    f = c.RGFW_keyF,
+    g = c.RGFW_keyG,
+    h = c.RGFW_keyH,
+    i = c.RGFW_keyI,
+    j = c.RGFW_keyJ,
+    k = c.RGFW_keyK,
+    l = c.RGFW_keyL,
+    m = c.RGFW_keyM,
+    n = c.RGFW_keyN,
+    o = c.RGFW_keyO,
+    p = c.RGFW_keyP,
+    q = c.RGFW_keyQ,
+    r = c.RGFW_keyR,
+    s = c.RGFW_keyS,
+    t = c.RGFW_keyT,
+    u = c.RGFW_keyU,
+    v = c.RGFW_keyV,
+    w = c.RGFW_keyW,
+    x = c.RGFW_keyX,
+    y = c.RGFW_keyY,
+    z = c.RGFW_keyZ,
+    _0 = c.RGFW_key0,
+    _1 = c.RGFW_key1,
+    _2 = c.RGFW_key2,
+    _3 = c.RGFW_key3,
+    _4 = c.RGFW_key4,
+    _5 = c.RGFW_key5,
+    _6 = c.RGFW_key6,
+    _7 = c.RGFW_key7,
+    _8 = c.RGFW_key8,
+    _9 = c.RGFW_key9,
+    f1 = c.RGFW_keyF1,
+    f2 = c.RGFW_keyF2,
+    f3 = c.RGFW_keyF3,
+    f4 = c.RGFW_keyF4,
+    f5 = c.RGFW_keyF5,
+    f6 = c.RGFW_keyF6,
+    f7 = c.RGFW_keyF7,
+    f8 = c.RGFW_keyF8,
+    f9 = c.RGFW_keyF9,
+    f10 = c.RGFW_keyF10,
+    f11 = c.RGFW_keyF11,
+    f12 = c.RGFW_keyF12,
+    f13 = c.RGFW_keyF13,
+    f14 = c.RGFW_keyF14,
+    f15 = c.RGFW_keyF15,
+    f16 = c.RGFW_keyF16,
+    f17 = c.RGFW_keyF17,
+    f18 = c.RGFW_keyF18,
+    f19 = c.RGFW_keyF19,
+    f20 = c.RGFW_keyF20,
+    f21 = c.RGFW_keyF21,
+    f22 = c.RGFW_keyF22,
+    f23 = c.RGFW_keyF23,
+    f24 = c.RGFW_keyF24,
+    f25 = c.RGFW_keyF25,
+    last = c.RGFW_keyLast,
+
+    pub const returnKey: @This() = .return_key;
+    pub const closeBracket: @This() = .close_bracket;
+    pub const capsLock: @This() = .caps_lock;
+    pub const shiftLeft: @This() = .shift_left;
+    pub const controlLeft: @This() = .control_left;
+    pub const altLeft: @This() = .alt_left;
+    pub const superLeft: @This() = .super_left;
+    pub const shiftRight: @This() = .shift_right;
+    pub const controlRight: @This() = .control_right;
+    pub const altRight: @This() = .alt_right;
+    pub const superRight: @This() = .super_right;
+    pub const pageUp: @This() = .page_up;
+    pub const pageDown: @This() = .page_down;
+    pub const numLock: @This() = .num_lock;
+    pub const padSlash: @This() = .pad_slash;
+    pub const padMultiply: @This() = .pad_multiply;
+    pub const padPlus: @This() = .pad_plus;
+    pub const padMinus: @This() = .pad_minus;
+    pub const padEqual: @This() = .pad_equal;
+    pub const padEquals: @This() = .pad_equals;
+    pub const padPeriod: @This() = .pad_period;
+    pub const padReturn: @This() = .pad_return;
+    pub const scrollLock: @This() = .scroll_lock;
+    pub const printScreen: @This() = .print_screen;
+    pub const world1: @This() = .world_1;
+    pub const world2: @This() = .world_2;
+    pub const cKey: @This() = .c;
+    pub const f16Key: @This() = .f16;
+    pub const backSpace: @This() = .backspace;
+    pub const backSlash: @This() = .backslash;
+};
+
 /// Abstract mouse button identifier.
-pub const MouseButton = u8;
+pub const MouseButton = enum(u8) {
+    left = c.RGFW_mouseLeft,
+    middle = c.RGFW_mouseMiddle,
+    right = c.RGFW_mouseRight,
+    misc1 = c.RGFW_mouseMisc1,
+    misc2 = c.RGFW_mouseMisc2,
+    misc3 = c.RGFW_mouseMisc3,
+    misc4 = c.RGFW_mouseMisc4,
+    misc5 = c.RGFW_mouseMisc5,
+    /// Total number of mouse button identifiers.
+    pub const final: @This() = @enumFromInt(c.RGFW_mouseFinal);
+};
+
 /// Bitmask of active key modifiers (CapsLock, Shift, Ctrl, Alt, Super, etc.).
-pub const KeyMod = u8;
-/// Flags for library initialization (OpenGL, EGL, Vulkan, X11).
-pub const InitFlags = u8;
+pub const KeyMod = packed struct(u8) {
+    capsLock: bool = false,
+    numLock: bool = false,
+    control: bool = false,
+    alt: bool = false,
+    shift: bool = false,
+    super_key: bool = false,
+    scrollLock: bool = false,
+    _: u1 = 0,
+};
+
+/// Flags for library initialization (OpenGL, EGL, Vulkan, X11) — bit flags.
+pub const InitFlags = packed struct(u8) {
+    /// Load native OpenGL on init.
+    openGl: bool = false,
+    /// Load EGL on init.
+    egl: bool = false,
+    /// Load Vulkan on init.
+    vulkan: bool = false,
+    /// Force X11 backend (even if Wayland is available).
+    x11: bool = false,
+    _: u4 = 0,
+};
+
 /// Pixel data format identifier (RGB8, RGBA8, BGRA8, etc.).
-pub const Format = u8;
+pub const Format = enum(u8) {
+    rgb8 = c.RGFW_formatRGB8,
+    bgr8 = c.RGFW_formatBGR8,
+    rgba8 = c.RGFW_formatRGBA8,
+    argb8 = c.RGFW_formatARGB8,
+    bgra8 = c.RGFW_formatBGRA8,
+    abgr8 = c.RGFW_formatABGR8,
+    /// Total number of pixel format types.
+    pub const count: Format = @enumFromInt(c.RGFW_formatCount);
+};
+
 /// Monitor mode request flags (scale, refresh rate, RGB bit depth).
-pub const ModeRequest = u8;
+pub const ModeRequest = enum(u8) {
+    scale = c.RGFW_monitorScale,
+    refresh = c.RGFW_monitorRefresh,
+    rgb = c.RGFW_monitorRGB,
+    all = c.RGFW_monitorAll,
+};
+
 /// Drag-and-drop action type (enter, move, exit).
-pub const DndActionType = u8;
+pub const DndActionType = enum(u8) {
+    none = c.RGFW_dndActionNone,
+    enter = c.RGFW_dndActionEnter,
+    move = c.RGFW_dndActionMove,
+    exit = c.RGFW_dndActionExit,
+};
+
 /// Type of transferred data (text, file, URL, image, unknown).
-pub const DataTransferType = u8;
+pub const DataTransferType = enum(u8) {
+    none = c.RGFW_dataNone,
+    text = c.RGFW_dataText,
+    file = c.RGFW_dataFile,
+    url = c.RGFW_dataURL,
+    image = c.RGFW_dataImage,
+    unknown = c.RGFW_dataUnknown,
+};
+
 /// Event type identifier (keyboard, mouse, window, monitor, etc.).
+/// See `Event.Type` for the complete list.
 pub const EventType = u8;
 /// Bitmask of event types to enable or disable.
 pub const EventFlag = u32;
 /// Wait mode for event polling (no wait, wait for next event).
 pub const EventWait = i32;
-/// Bitmask of window creation and behavior flags.
-pub const WindowFlags = u32;
+
+/// Window creation and behavior flags — bit flags.
+pub const WindowFlags = packed struct(u32) {
+    noBorder: bool = false,
+    noResize: bool = false,
+    allowDnd: bool = false,
+    hideMouse: bool = false,
+    fullscreen: bool = false,
+    translucent: bool = false,
+    center: bool = false,
+    rawMouse: bool = false,
+    scaleToMonitor: bool = false,
+    hide: bool = false,
+    maximize: bool = false,
+    centerCursor: bool = false,
+    floating: bool = false,
+    focusOnShow: bool = false,
+    minimize: bool = false,
+    focus: bool = false,
+    captureMouse: bool = false,
+    openGl: bool = false,
+    egl: bool = false,
+    _: u13 = 0,
+
+    /// Alias for `translucent`.
+    pub const transparent: WindowFlags = .{ .translucent = true };
+    /// Shortcut for borderless + maximized (pseudo-fullscreen).
+    pub const windowedFullscreen: WindowFlags = .{ .noBorder = true, .maximize = true };
+    /// Shortcut for captured + raw mouse.
+    pub const captureRawMouse: WindowFlags = .{ .captureMouse = true, .rawMouse = true };
+};
+
 /// Target icon type (taskbar, window, or both).
-pub const Icon = u8;
+pub const Icon = enum(u8) {
+    taskbar = c.RGFW_iconTaskbar,
+    window = c.RGFW_iconWindow,
+    both = c.RGFW_iconBoth,
+};
+
 /// Standard system cursor icon identifier.
-pub const MouseIcon = u8;
+pub const MouseIcon = enum(u8) {
+    normal = c.RGFW_mouseNormal,
+    arrow = c.RGFW_mouseArrow,
+    ibeam = c.RGFW_mouseIbeam,
+    crosshair = c.RGFW_mouseCrosshair,
+    pointingHand = c.RGFW_mousePointingHand,
+    resizeEw = c.RGFW_mouseResizeEW,
+    resizeNs = c.RGFW_mouseResizeNS,
+    resizeNwse = c.RGFW_mouseResizeNWSE,
+    resizeNesw = c.RGFW_mouseResizeNESW,
+    resizeNw = c.RGFW_mouseResizeNW,
+    resizeN = c.RGFW_mouseResizeN,
+    resizeNe = c.RGFW_mouseResizeNE,
+    resizeE = c.RGFW_mouseResizeE,
+    resizeSe = c.RGFW_mouseResizeSE,
+    resizeS = c.RGFW_mouseResizeS,
+    resizeSw = c.RGFW_mouseResizeSW,
+    resizeW = c.RGFW_mouseResizeW,
+    resizeAll = c.RGFW_mouseResizeAll,
+    notAllowed = c.RGFW_mouseNotAllowed,
+    wait = c.RGFW_mouseWait,
+    progress = c.RGFW_mouseProgress,
+    pub const final: MouseIcon = @enumFromInt(c.RGFW_mouseIconFinal);
+    pub const count: MouseIcon = @enumFromInt(c.RGFW_mouseIconCount);
+    /// Alias for `ibeam`.
+    pub const text: @This() = .ibeam;
+};
+
 /// Window flash request type (cancel, briefly, until focused).
-pub const FlashRequest = u8;
+pub const FlashRequest = enum(u8) {
+    cancel = c.RGFW_flashCancel,
+    briefly = c.RGFW_flashBriefly,
+    untilFocused = c.RGFW_flashUntilFocused,
+};
+
 /// Debug message severity (error, warning, info).
-pub const DebugType = u8;
+pub const DebugType = enum(u8) {
+    err = c.RGFW_typeError,
+    warning = c.RGFW_typeWarning,
+    info = c.RGFW_typeInfo,
+};
+
 /// Specific error or informational code.
-pub const ErrorCode = u8;
+pub const ErrorCode = enum(u8) {
+    none = c.RGFW_noError,
+    outOfMemory = c.RGFW_errOutOfMemory,
+    openGlContext = c.RGFW_errOpenGLContext,
+    eglContext = c.RGFW_errEGLContext,
+    wayland = c.RGFW_errWayland,
+    x11 = c.RGFW_errX11,
+    directxContext = c.RGFW_errDirectXContext,
+    ioKit = c.RGFW_errIOKit,
+    clipboard = c.RGFW_errClipboard,
+    failedFuncLoad = c.RGFW_errFailedFuncLoad,
+    buffer = c.RGFW_errBuffer,
+    metal = c.RGFW_errMetal,
+    platform = c.RGFW_errPlatform,
+    eventQueue = c.RGFW_errEventQueue,
+    noInit = c.RGFW_errNoInit,
+    infoWindow = c.RGFW_infoWindow,
+    infoBuffer = c.RGFW_infoBuffer,
+    infoGlobal = c.RGFW_infoGlobal,
+    infoOpenGl = c.RGFW_infoOpenGL,
+    warningWayland = c.RGFW_warningWayland,
+    warningOpenGl = c.RGFW_warningOpenGL,
+};
+
 /// OpenGL context release behavior hint.
-pub const GlReleaseBehavior = i32;
+pub const GlReleaseBehavior = enum(i32) {
+    flush = c.RGFW_glReleaseFlush,
+    none = c.RGFW_glReleaseNone,
+};
+
 /// OpenGL profile hint (core, compat, ES, forward-compat).
-pub const GlProfile = i32;
+pub const GlProfile = enum(i32) {
+    core = c.RGFW_glCore,
+    forwardCompatibility = c.RGFW_glForwardCompatibility,
+    compatibility = c.RGFW_glCompatibility,
+    es = c.RGFW_glES,
+    web = c.RGFW_glWeb,
+};
+
 /// OpenGL renderer hint (accelerated, software).
-pub const GlRenderer = i32;
+pub const GlRenderer = enum(i32) {
+    accelerated = c.RGFW_glAccelerated,
+    software = c.RGFW_glSoftware,
+};
 
 /// Describes the channel layout of a pixel format.
 /// Maps byte offsets for red, green, blue, alpha and the total channel count.
@@ -905,14 +1236,14 @@ pub fn free(ptr: ?*anyopaque) void {
 /// `flags` control which subsystems to load (OpenGL, EGL, Vulkan, X11).
 /// Returns 0 on success, negative on error, positive on warning.
 pub fn init(class_name: ?[:0]const u8, flags: InitFlags) i32 {
-    return @intCast(c.RGFW_init(optionalCString(class_name), @intCast(flags)));
+    return @intCast(c.RGFW_init(optionalCString(class_name), @as(u8, @bitCast(flags))));
 }
 
 /// Initialize RGFW using a user-provided `Info` structure.
 /// Useful for managing multiple independent RGFW contexts.
 /// Returns 0 on success, negative on error, positive on warning.
 pub fn initPtr(class_name: ?[:0]const u8, flags: InitFlags, info: *Info) i32 {
-    return @intCast(c.RGFW_init_ptr(optionalCString(class_name), @intCast(flags), cInfo(info)));
+    return @intCast(c.RGFW_init_ptr(optionalCString(class_name), @as(u8, @bitCast(flags)), cInfo(info)));
 }
 
 /// Deinitialize the default RGFW context and free all associated resources.
@@ -982,14 +1313,14 @@ pub fn moveToMacOSResourceDir() void {
 /// Copy image data from `src` to `dest`, converting pixel formats as needed.
 /// If `func` is provided, it is used for the conversion; otherwise a default path is taken.
 pub fn copyImageData(dest: []u8, size: Size, dest_format: Format, src: []u8, src_format: Format, func: ConvertImageDataFunc) void {
-    c.RGFW_copyImageData(dest.ptr, size.w, size.h, @intCast(dest_format), src.ptr, @intCast(src_format), func);
+    c.RGFW_copyImageData(dest.ptr, size.w, size.h, @intFromEnum(dest_format), src.ptr, @intFromEnum(src_format), func);
 }
 
 /// 64-bit aware image data copy with format conversion.
 /// `is_64_bit` indicates whether the image data uses 64-bit pixels.
 pub fn copyImageData64(dest: []u8, size: Size, dest_format: Format, src: []u8, src_format: Format, is_64_bit: bool, func: ConvertImageDataFunc) Error!void {
     if (!@hasDecl(c, "RGFW_copyImageData64")) return Error.MissingDeclaration;
-    c.RGFW_copyImageData64(dest.ptr, size.w, size.h, @intCast(dest_format), src.ptr, @intCast(src_format), boolToC(is_64_bit), func);
+    c.RGFW_copyImageData64(dest.ptr, size.w, size.h, @intFromEnum(dest_format), src.ptr, @intFromEnum(src_format), boolToC(is_64_bit), func);
 }
 
 /// Convert raw pixel data between color layouts (e.g. RGB ↔ BGR).
@@ -1070,13 +1401,13 @@ pub fn setAllEventCallbacks(func: GenericFunc, callback_set: *Callbacks) void {
 /// Create a new window with the given title, position, size, and flags.
 /// Returns a pointer to the new `Window` or null on failure.
 pub fn createWindow(name: [:0]const u8, pos: Position, size: Size, flags: WindowFlags) ?*Window {
-    return zigWindow(c.RGFW_createWindow(name.ptr, pos.x, pos.y, size.w, size.h, @intCast(flags)));
+    return zigWindow(c.RGFW_createWindow(name.ptr, pos.x, pos.y, size.w, size.h, @as(u32, @bitCast(flags))));
 }
 
 /// Create a new window using a pre-allocated `Window` structure.
 /// Returns the window pointer or null on failure.
 pub fn createWindowPtr(name: [:0]const u8, pos: Position, size: Size, flags: WindowFlags, win: *Window) ?*Window {
-    return zigWindow(c.RGFW_createWindowPtr(name.ptr, pos.x, pos.y, size.w, size.h, @intCast(flags), cWindow(win)));
+    return zigWindow(c.RGFW_createWindowPtr(name.ptr, pos.x, pos.y, size.w, size.h, @as(u32, @bitCast(flags)), cWindow(win)));
 }
 
 /// Retrieve the global mouse cursor position in screen coordinates.
@@ -1106,32 +1437,32 @@ pub fn getMouseVector() MouseVector {
 
 /// Returns true if the key was pressed this frame (transition from up to down).
 pub fn isKeyPressed(key_code: Key) bool {
-    return boolFromC(c.RGFW_isKeyPressed(@intCast(key_code)));
+    return boolFromC(c.RGFW_isKeyPressed(@intFromEnum(key_code)));
 }
 
 /// Returns true if the key was released this frame (transition from down to up).
 pub fn isKeyReleased(key_code: Key) bool {
-    return boolFromC(c.RGFW_isKeyReleased(@intCast(key_code)));
+    return boolFromC(c.RGFW_isKeyReleased(@intFromEnum(key_code)));
 }
 
 /// Returns true if the key is currently held down.
 pub fn isKeyDown(key_code: Key) bool {
-    return boolFromC(c.RGFW_isKeyDown(@intCast(key_code)));
+    return boolFromC(c.RGFW_isKeyDown(@intFromEnum(key_code)));
 }
 
 /// Returns true if the mouse button was pressed this frame.
 pub fn isMousePressed(button: MouseButton) bool {
-    return boolFromC(c.RGFW_isMousePressed(@intCast(button)));
+    return boolFromC(c.RGFW_isMousePressed(@intFromEnum(button)));
 }
 
 /// Returns true if the mouse button was released this frame.
 pub fn isMouseReleased(button: MouseButton) bool {
-    return boolFromC(c.RGFW_isMouseReleased(@intCast(button)));
+    return boolFromC(c.RGFW_isMouseReleased(@intFromEnum(button)));
 }
 
 /// Returns true if the mouse button is currently held down.
 pub fn isMouseDown(button: MouseButton) bool {
-    return boolFromC(c.RGFW_isMouseDown(@intCast(button)));
+    return boolFromC(c.RGFW_isMouseDown(@intFromEnum(button)));
 }
 
 /// Set the root (main) window for the current RGFW context.
@@ -1146,18 +1477,18 @@ pub fn getRootWindow() ?*Window {
 
 /// Convert a platform-specific keycode to an RGFW abstract key code.
 pub fn apiKeyToRgfw(keycode: u32) Key {
-    return @intCast(c.RGFW_apiKeyToRGFW(@intCast(keycode)));
+    return @intCast(c.RGFW_apiKeyToRGFW(@intFromEnum(keycode)));
 }
 
 /// Convert an RGFW abstract key code to a platform-specific keycode.
 pub fn rgfwToApiKey(keycode: Key) u32 {
-    return @intCast(c.RGFW_rgfwToApiKey(@intCast(keycode)));
+    return @intCast(c.RGFW_rgfwToApiKey(@intFromEnum(keycode)));
 }
 
 /// Convert a physical RGFW key code to a mapped (character) RGFW key code,
 /// taking keyboard layout into account.
 pub fn physicalToMappedKey(keycode: Key) Key {
-    return @intCast(c.RGFW_physicalToMappedKey(@intCast(keycode)));
+    return @intCast(c.RGFW_physicalToMappedKey(@intFromEnum(keycode)));
 }
 
 /// Check if a string contains any non-ASCII characters (>= 0x80).
@@ -1225,7 +1556,7 @@ pub const window = struct {
 
     /// Set the exit key for the window. When this key is pressed, `shouldClose` returns true.
     pub fn setExitKey(win: *Window, key_code: Key) void {
-        c.RGFW_window_setExitKey(cWindow(win), @intCast(key_code));
+        c.RGFW_window_setExitKey(cWindow(win), @intFromEnum(key_code));
     }
 
     /// Get the window position in screen coordinates.
@@ -1267,7 +1598,7 @@ pub const window = struct {
 
     /// Set the window flags (will apply or undo flag effects as needed).
     pub fn setFlags(win: *Window, flags: WindowFlags) void {
-        c.RGFW_window_setFlags(cWindow(win), @intCast(flags));
+        c.RGFW_window_setFlags(cWindow(win), @as(u32, @bitCast(flags)));
     }
 
     /// Set which event types are enabled for this window.
@@ -1361,32 +1692,32 @@ pub const window = struct {
 
     /// Returns true if the key was pressed this frame while the window is in focus.
     pub fn isKeyPressed(win: *Window, key_code: Key) bool {
-        return boolFromC(c.RGFW_window_isKeyPressed(cWindow(win), @intCast(key_code)));
+        return boolFromC(c.RGFW_window_isKeyPressed(cWindow(win), @intFromEnum(key_code)));
     }
 
     /// Returns true if the key is being held down while the window is in focus.
     pub fn isKeyDown(win: *Window, key_code: Key) bool {
-        return boolFromC(c.RGFW_window_isKeyDown(cWindow(win), @intCast(key_code)));
+        return boolFromC(c.RGFW_window_isKeyDown(cWindow(win), @intFromEnum(key_code)));
     }
 
     /// Returns true if the key was released this frame while the window is in focus.
     pub fn isKeyReleased(win: *Window, key_code: Key) bool {
-        return boolFromC(c.RGFW_window_isKeyReleased(cWindow(win), @intCast(key_code)));
+        return boolFromC(c.RGFW_window_isKeyReleased(cWindow(win), @intFromEnum(key_code)));
     }
 
     /// Returns true if the mouse button was pressed this frame while the window is in focus.
     pub fn isMousePressed(win: *Window, button: MouseButton) bool {
-        return boolFromC(c.RGFW_window_isMousePressed(cWindow(win), @intCast(button)));
+        return boolFromC(c.RGFW_window_isMousePressed(cWindow(win), @intFromEnum(button)));
     }
 
     /// Returns true if the mouse button is held down while the window is in focus.
     pub fn isMouseDown(win: *Window, button: MouseButton) bool {
-        return boolFromC(c.RGFW_window_isMouseDown(cWindow(win), @intCast(button)));
+        return boolFromC(c.RGFW_window_isMouseDown(cWindow(win), @intFromEnum(button)));
     }
 
     /// Returns true if the mouse button was released this frame while the window is in focus.
     pub fn isMouseReleased(win: *Window, button: MouseButton) bool {
-        return boolFromC(c.RGFW_window_isMouseReleased(cWindow(win), @intCast(button)));
+        return boolFromC(c.RGFW_window_isMouseReleased(cWindow(win), @intFromEnum(button)));
     }
 
     /// Returns true if the mouse left the window (only true for the first frame).
@@ -2254,7 +2585,7 @@ pub const platform = struct {
     /// Create a window using the platform backend directly (low-level).
     pub fn createWindow(name: [:0]const u8, flags: WindowFlags, win: *Window) Error!?*Window {
         if (!@hasDecl(c, "RGFW_createWindowPlatform")) return Error.MissingDeclaration;
-        return zigWindow(c.RGFW_createWindowPlatform(name.ptr, @intCast(flags), cWindow(win)));
+        return zigWindow(c.RGFW_createWindowPlatform(name.ptr, @as(u32, @bitCast(flags)), cWindow(win)));
     }
 
     /// Close a window using the platform backend directly (low-level).
@@ -2272,13 +2603,13 @@ pub const platform = struct {
     /// Set window flags via the internal setFlags path (low-level).
     pub fn setFlagsInternal(win: *Window, flags: WindowFlags, cmp_flags: WindowFlags) Error!void {
         if (!@hasDecl(c, "RGFW_window_setFlagsInternal")) return Error.MissingDeclaration;
-        c.RGFW_window_setFlagsInternal(cWindow(win), @intCast(flags), @intCast(cmp_flags));
+        c.RGFW_window_setFlagsInternal(cWindow(win), @as(u32, @bitCast(flags)), @intCast(cmp_flags));
     }
 
     /// Initialize the X11 platform backend directly.
     pub fn initX11(class_name: ?[:0]const u8, flags: InitFlags) Error!i32 {
         if (!@hasDecl(c, "RGFW_initPlatform_X11")) return Error.MissingDeclaration;
-        return @intCast(c.RGFW_initPlatform_X11(optionalCString(class_name), @intCast(flags)));
+        return @intCast(c.RGFW_initPlatform_X11(optionalCString(class_name), @as(u8, @bitCast(flags))));
     }
 
     /// Deinitialize the X11 platform backend.
@@ -2290,7 +2621,7 @@ pub const platform = struct {
     /// Initialize the Wayland platform backend directly.
     pub fn initWayland(class_name: ?[:0]const u8, flags: InitFlags) Error!i32 {
         if (!@hasDecl(c, "RGFW_initPlatform_Wayland")) return Error.MissingDeclaration;
-        return @intCast(c.RGFW_initPlatform_Wayland(optionalCString(class_name), @intCast(flags)));
+        return @intCast(c.RGFW_initPlatform_Wayland(optionalCString(class_name), @as(u8, @bitCast(flags))));
     }
 
     /// Deinitialize the Wayland platform backend.
@@ -2604,13 +2935,13 @@ pub const callbacks = struct {
     /// Called when a key is pressed or released.
     pub fn keyEvent(win: *Window, key_code: Key, mod: KeyMod, repeat: bool, press: bool) Error!void {
         if (!@hasDecl(c, "RGFW_keyCallback")) return Error.MissingDeclaration;
-        c.RGFW_keyCallback(cWindow(win), @intCast(key_code), @intCast(mod), boolToC(repeat), boolToC(press));
+        c.RGFW_keyCallback(cWindow(win), @intFromEnum(key_code), @intCast(mod), boolToC(repeat), boolToC(press));
     }
 
     /// Called when a mouse button is pressed or released.
     pub fn mouseButton(win: *Window, button: MouseButton, press: bool) Error!void {
         if (!@hasDecl(c, "RGFW_mouseButtonCallback")) return Error.MissingDeclaration;
-        c.RGFW_mouseButtonCallback(cWindow(win), @intCast(button), boolToC(press));
+        c.RGFW_mouseButtonCallback(cWindow(win), @intFromEnum(button), boolToC(press));
     }
 
     /// Called when the mouse scroll wheel is used.
@@ -2655,13 +2986,13 @@ pub const native = struct {
     /// Get the Win32 window style flags for the given RGFW flags (Windows only).
     pub fn winapiWindowGetStyle(win: *Window, flags: WindowFlags) Error!u32 {
         if (!@hasDecl(c, "RGFW_winapi_window_getStyle")) return Error.MissingDeclaration;
-        return @intCast(c.RGFW_winapi_window_getStyle(cWindow(win), @intCast(flags)));
+        return @intCast(c.RGFW_winapi_window_getStyle(cWindow(win), @as(u32, @bitCast(flags))));
     }
 
     /// Get the Win32 extended window style flags (Windows only).
     pub fn winapiWindowGetExStyle(win: *Window, flags: WindowFlags) Error!u32 {
         if (!@hasDecl(c, "RGFW_winapi_window_getExStyle")) return Error.MissingDeclaration;
-        return @intCast(c.RGFW_winapi_window_getExStyle(cWindow(win), @intCast(flags)));
+        return @intCast(c.RGFW_winapi_window_getExStyle(cWindow(win), @as(u32, @bitCast(flags))));
     }
 
     /// Get the system content DPI via X11 XResources (X11 only).

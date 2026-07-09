@@ -1,11 +1,11 @@
 //! Example: create a simple window using RGFW Zig bindings.
 //! Similar to the basic example in the RGFW README.
-
+const std = @import("std");
 const rgfw = @import("rgfw");
 
 pub fn main() !void {
     // Initialize the RGFW library (0 = success, negative = error, positive = warning)
-    const init_result = rgfw.init(null, 0);
+    const init_result = rgfw.init(null, .{ .openGl = true });
     if (init_result < 0) {
         @panic("RGFW init failed");
     }
@@ -15,13 +15,29 @@ pub fn main() !void {
         "Hello, RGFW!",
         .{ .x = 100, .y = 100 },
         .{ .w = 500, .h = 500 },
-        0,
+        .{
+            // .noResize = true,
+            // .hideMouse = true,
+            .fullscreen = false,
+            .noBorder = true,
+        },
     ) orelse {
         @panic("Failed to create window");
     };
-    defer win.close();
+    defer rgfw.window.close(win);
 
+    var previousEventType: rgfw.EventType = 0;
     while (!rgfw.window.shouldClose(win)) {
         rgfw.pollEvents();
+        var event: rgfw.Event = undefined;
+
+        if (rgfw.checkEvent(&event)) {
+            if (previousEventType != event.type) {
+                std.debug.print("Event type: {}\n", .{event.type});
+                previousEventType = event.type;
+            }
+        }
+
+        // break;
     }
 }
