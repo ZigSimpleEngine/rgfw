@@ -12,12 +12,8 @@ pub fn build(b: *std.Build) void {
     });
 
     mod.addIncludePath(b.path("."));
-    mod.addCSourceFile(.{
-        .file = b.path("RGFW.c"),
-        .flags = &.{
-            "-DRGFW_OPENGL",
-        },
-    });
+    mod.addCMacro("RGFW_OPENGL", "");
+    mod.addCSourceFile(.{ .file = b.path("RGFW.c") });
 
     var example_exe = b.addExecutable(.{
         .name = "example",

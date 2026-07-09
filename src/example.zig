@@ -16,10 +16,7 @@ pub fn main() !void {
         .{ .x = 100, .y = 100 },
         .{ .w = 500, .h = 500 },
         .{
-            // .noResize = true,
-            // .hideMouse = true,
-            .fullscreen = false,
-            .noBorder = true,
+            .openGl = true,
         },
     ) orelse {
         @panic("Failed to create window");
@@ -38,6 +35,7 @@ pub fn main() !void {
             }
         }
 
+        try rgfw.opengl.swapBuffers(win);
         // break;
     }
 }
