@@ -23,7 +23,7 @@ pub fn main() !void {
     };
     defer rgfw.window.close(win);
 
-    var previousEventType: rgfw.EventType = 0;
+    var previousEventType: rgfw.EventType = .none;
     while (!rgfw.window.shouldClose(win)) {
         rgfw.pollEvents();
         var event: rgfw.Event = undefined;

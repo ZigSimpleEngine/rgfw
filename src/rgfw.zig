@@ -254,8 +254,60 @@ pub const DataTransferType = enum(u8) {
 };
 
 /// Event type identifier (keyboard, mouse, window, monitor, etc.).
-/// See `Event.Type` for the complete list.
-pub const EventType = u8;
+pub const EventType = enum(u8) {
+    /// No event.
+    none = @intCast(c.RGFW_eventNone),
+    /// A key was pressed.
+    keyPressed = @intCast(c.RGFW_keyPressed),
+    /// A key was released.
+    keyReleased = @intCast(c.RGFW_keyReleased),
+    /// UTF-8 character input event.
+    keyChar = @intCast(c.RGFW_keyChar),
+    /// A mouse button was pressed.
+    mouseButtonPressed = @intCast(c.RGFW_mouseButtonPressed),
+    /// A mouse button was released.
+    mouseButtonReleased = @intCast(c.RGFW_mouseButtonReleased),
+    /// Mouse scroll wheel moved.
+    mouseScroll = @intCast(c.RGFW_mouseScroll),
+    /// Mouse cursor moved within the window.
+    mouseMotion = @intCast(c.RGFW_mouseMotion),
+    /// Raw (unaccelerated) mouse motion delta.
+    mouseRawMotion = @intCast(c.RGFW_mouseRawMotion),
+    /// Mouse cursor entered the window.
+    mouseEnter = @intCast(c.RGFW_mouseEnter),
+    /// Mouse cursor left the window.
+    mouseLeave = @intCast(c.RGFW_mouseLeave),
+    /// The window was moved by the user.
+    windowMoved = @intCast(c.RGFW_windowMoved),
+    /// The window was resized by the user (on WASM: the browser was resized).
+    windowResized = @intCast(c.RGFW_windowResized),
+    /// Window gained keyboard focus.
+    windowFocusIn = @intCast(c.RGFW_windowFocusIn),
+    /// Window lost keyboard focus.
+    windowFocusOut = @intCast(c.RGFW_windowFocusOut),
+    /// Window content needs to be refreshed (e.g. expose event).
+    windowRefresh = @intCast(c.RGFW_windowRefresh),
+    /// User attempted to close the window.
+    windowClose = @intCast(c.RGFW_windowClose),
+    /// Window was maximized.
+    windowMaximized = @intCast(c.RGFW_windowMaximized),
+    /// Window was minimized.
+    windowMinimized = @intCast(c.RGFW_windowMinimized),
+    /// Window was restored from minimized/maximized state.
+    windowRestored = @intCast(c.RGFW_windowRestored),
+    /// Data was dropped onto the window.
+    dataDrop = @intCast(c.RGFW_dataDrop),
+    /// A drag-and-drop operation is in progress over the window.
+    dataDrag = @intCast(c.RGFW_dataDrag),
+    /// Content scale factor changed (DPI change).
+    scaleUpdated = @intCast(c.RGFW_scaleUpdated),
+    /// A monitor was connected.
+    monitorConnected = @intCast(c.RGFW_monitorConnected),
+    /// A monitor was disconnected.
+    monitorDisconnected = @intCast(c.RGFW_monitorDisconnected),
+    /// Total number of event types.
+    count = @intCast(c.RGFW_eventCount),
+};
 /// Bitmask of event types to enable or disable.
 pub const EventFlag = u32;
 /// Wait mode for event polling (no wait, wait for next event).
@@ -509,141 +561,8 @@ pub const DebugFunc = c.RGFW_debugFunc;
 /// Image data format conversion function pointer.
 pub const ConvertImageDataFunc = c.RGFW_convertImageDataFunc;
 
-/// Flags for `RGFW_init` / `RGFW_initPtr`.
-pub const initFlag = struct {
-    /// Load native OpenGL on init.
-    pub const openGl: InitFlags = @intCast(c.RGFW_initOpenGL);
-    /// Load EGL on init.
-    pub const egl: InitFlags = @intCast(c.RGFW_initEGL);
-    /// Load Vulkan on init.
-    pub const vulkan: InitFlags = @intCast(c.RGFW_initVulkan);
-    /// Force X11 backend (even if Wayland is available).
-    pub const x11: InitFlags = @intCast(c.RGFW_initX11);
-};
-
-/// Available pixel data formats.
-pub const format = struct {
-    /// 8-bit RGB, 3 channels (no alpha).
-    pub const rgb8: Format = @intCast(c.RGFW_formatRGB8);
-    /// 8-bit RGBA, 4 channels.
-    pub const rgba8: Format = @intCast(c.RGFW_formatRGBA8);
-    /// 8-bit ARGB, 4 channels.
-    pub const argb8: Format = @intCast(c.RGFW_formatARGB8);
-    /// 8-bit ABGR, 4 channels.
-    pub const abgr8: Format = @intCast(c.RGFW_formatABGR8);
-    /// 8-bit BGRA, 4 channels.
-    pub const bgra8: Format = @intCast(c.RGFW_formatBGRA8);
-    /// 8-bit BGR, 3 channels (no alpha).
-    pub const bgr8: Format = @intCast(c.RGFW_formatBGR8);
-};
-
-/// Monitor mode request flags.
-pub const modeRequest = struct {
-    /// Scale the monitor resolution.
-    pub const scale: ModeRequest = @intCast(c.RGFW_monitorScale);
-    /// Change the monitor refresh rate.
-    pub const refresh: ModeRequest = @intCast(c.RGFW_monitorRefresh);
-    /// Change the monitor RGB bit depth.
-    pub const rgb: ModeRequest = @intCast(c.RGFW_monitorRGB);
-    /// Apply all mode changes (scale, refresh, RGB).
-    pub const all: ModeRequest = @intCast(c.RGFW_monitorAll);
-};
-
-/// Abstract mouse button identifiers.
-pub const mouseButton = struct {
-    /// Left mouse button.
-    pub const left: MouseButton = @intCast(c.RGFW_mouseLeft);
-    /// Middle mouse button (wheel button).
-    pub const middle: MouseButton = @intCast(c.RGFW_mouseMiddle);
-    /// Right mouse button.
-    pub const right: MouseButton = @intCast(c.RGFW_mouseRight);
-    /// Extra mouse button 1.
-    pub const misc1: MouseButton = @intCast(c.RGFW_mouseMisc1);
-    /// Extra mouse button 2.
-    pub const misc2: MouseButton = @intCast(c.RGFW_mouseMisc2);
-    /// Extra mouse button 3.
-    pub const misc3: MouseButton = @intCast(c.RGFW_mouseMisc3);
-    /// Extra mouse button 4.
-    pub const misc4: MouseButton = @intCast(c.RGFW_mouseMisc4);
-    /// Extra mouse button 5.
-    pub const misc5: MouseButton = @intCast(c.RGFW_mouseMisc5);
-};
-
-/// Keyboard modifier bit flags.
-pub const keyMod = struct {
-    /// Caps Lock is active.
-    pub const capsLock: KeyMod = @intCast(c.RGFW_modCapsLock);
-    /// Num Lock is active.
-    pub const numLock: KeyMod = @intCast(c.RGFW_modNumLock);
-    /// Control key is held.
-    pub const control: KeyMod = @intCast(c.RGFW_modControl);
-    /// Alt key is held.
-    pub const alt: KeyMod = @intCast(c.RGFW_modAlt);
-    /// Shift key is held.
-    pub const shift: KeyMod = @intCast(c.RGFW_modShift);
-    /// Super/Windows/Command key is held.
-    pub const super: KeyMod = @intCast(c.RGFW_modSuper);
-    /// Scroll Lock is active.
-    pub const scrollLock: KeyMod = @intCast(c.RGFW_modScrollLock);
-};
-
 /// Identifiers for every type of event that RGFW can send.
-pub const eventType = struct {
-    /// No event.
-    pub const none: EventType = @intCast(c.RGFW_eventNone);
-    /// A key was pressed.
-    pub const keyPressed: EventType = @intCast(c.RGFW_keyPressed);
-    /// A key was released.
-    pub const keyReleased: EventType = @intCast(c.RGFW_keyReleased);
-    /// UTF-8 character input event.
-    pub const keyChar: EventType = @intCast(c.RGFW_keyChar);
-    /// A mouse button was pressed.
-    pub const mouseButtonPressed: EventType = @intCast(c.RGFW_mouseButtonPressed);
-    /// A mouse button was released.
-    pub const mouseButtonReleased: EventType = @intCast(c.RGFW_mouseButtonReleased);
-    /// Mouse scroll wheel moved.
-    pub const mouseScroll: EventType = @intCast(c.RGFW_mouseScroll);
-    /// Mouse cursor moved within the window.
-    pub const mouseMotion: EventType = @intCast(c.RGFW_mouseMotion);
-    /// Raw (unaccelerated) mouse motion delta.
-    pub const mouseRawMotion: EventType = @intCast(c.RGFW_mouseRawMotion);
-    /// Mouse cursor entered the window.
-    pub const mouseEnter: EventType = @intCast(c.RGFW_mouseEnter);
-    /// Mouse cursor left the window.
-    pub const mouseLeave: EventType = @intCast(c.RGFW_mouseLeave);
-    /// The window was moved by the user.
-    pub const windowMoved: EventType = @intCast(c.RGFW_windowMoved);
-    /// The window was resized by the user (on WASM: the browser was resized).
-    pub const windowResized: EventType = @intCast(c.RGFW_windowResized);
-    /// Window gained keyboard focus.
-    pub const windowFocusIn: EventType = @intCast(c.RGFW_windowFocusIn);
-    /// Window lost keyboard focus.
-    pub const windowFocusOut: EventType = @intCast(c.RGFW_windowFocusOut);
-    /// Window content needs to be refreshed (e.g. expose event).
-    pub const windowRefresh: EventType = @intCast(c.RGFW_windowRefresh);
-    /// User attempted to close the window.
-    pub const windowClose: EventType = @intCast(c.RGFW_windowClose);
-    /// Window was maximized.
-    pub const windowMaximized: EventType = @intCast(c.RGFW_windowMaximized);
-    /// Window was minimized.
-    pub const windowMinimized: EventType = @intCast(c.RGFW_windowMinimized);
-    /// Window was restored from minimized/maximized state.
-    pub const windowRestored: EventType = @intCast(c.RGFW_windowRestored);
-    /// Data was dropped onto the window.
-    pub const dataDrop: EventType = @intCast(c.RGFW_dataDrop);
-    /// A drag-and-drop operation is in progress over the window.
-    pub const dataDrag: EventType = @intCast(c.RGFW_dataDrag);
-    /// Content scale factor changed (DPI change).
-    pub const scaleUpdated: EventType = @intCast(c.RGFW_scaleUpdated);
-    /// A monitor was connected.
-    pub const monitorConnected: EventType = @intCast(c.RGFW_monitorConnected);
-    /// A monitor was disconnected.
-    pub const monitorDisconnected: EventType = @intCast(c.RGFW_monitorDisconnected);
-    /// Total number of event types.
-    pub const count: EventType = @intCast(c.RGFW_eventCount);
-    /// Alias for `mouseMotion` (may be removed in the future).
-    pub const mousePosChanged: EventType = @intCast(c.RGFW_mousePosChanged);
-};
+pub const eventType = struct {};
 
 /// Bitmask flags for enabling or disabling specific event types on a window.
 pub const eventFlag = struct {
