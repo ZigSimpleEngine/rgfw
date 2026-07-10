@@ -311,9 +311,40 @@ pub const EventType = enum(u8) {
     count = @intCast(c.RGFW_eventCount),
 };
 /// Bitmask of event types to enable or disable.
-pub const EventFlag = u32;
+pub const EventFlag = packed struct(u32) {
+    _unused: bool = false, // bit 0 (RGFW_eventNone)
+    key_pressed: bool = false, // bit 1
+    key_released: bool = false, // bit 2
+    key_char: bool = false, // bit 3
+    mouse_button_pressed: bool = false, // bit 4
+    mouse_button_released: bool = false, // bit 5
+    mouse_scroll: bool = false, // bit 6
+    mouse_motion: bool = false, // bit 7
+    mouse_raw_motion: bool = false, // bit 8
+    mouse_enter: bool = false, // bit 9
+    mouse_leave: bool = false, // bit 10
+    window_moved: bool = false, // bit 11
+    window_resized: bool = false, // bit 12
+    window_focus_in: bool = false, // bit 13
+    window_focus_out: bool = false, // bit 14
+    window_refresh: bool = false, // bit 15
+    window_close: bool = false, // bit 16
+    window_maximized: bool = false, // bit 17
+    window_minimized: bool = false, // bit 18
+    window_restored: bool = false, // bit 19
+    data_drop: bool = false, // bit 20
+    data_drag: bool = false, // bit 21
+    scale_updated: bool = false, // bit 22
+    monitor_connected: bool = false, // bit 23
+    monitor_disconnected: bool = false, // bit 24
+
+    _padding: u7 = 0, // bits 25..31
+};
 /// Wait mode for event polling (no wait, wait for next event).
-pub const EventWait = i32;
+pub const EventWait = enum(i32) {
+    eventNoWait = 0,
+    eventWaitNext = -1,
+};
 
 /// Window creation and behavior flags — bit flags.
 pub const WindowFlags = packed struct(u32) {
@@ -776,319 +807,6 @@ pub const GenericFunc = c.RGFW_genericFunc;
 pub const DebugFunc = c.RGFW_debugFunc;
 /// Image data format conversion function pointer.
 pub const ConvertImageDataFunc = c.RGFW_convertImageDataFunc;
-
-/// Identifiers for every type of event that RGFW can send.
-pub const eventType = struct {};
-
-/// Bitmask flags for enabling or disabling specific event types on a window.
-pub const eventFlag = struct {
-    /// Enable key pressed events.
-    pub const keyPressed: EventFlag = @intCast(c.RGFW_keyPressedFlag);
-    /// Enable key released events.
-    pub const keyReleased: EventFlag = @intCast(c.RGFW_keyReleasedFlag);
-    /// Enable key character (UTF-8) events.
-    pub const keyChar: EventFlag = @intCast(c.RGFW_keyCharFlag);
-    /// Enable mouse scroll events.
-    pub const mouseScroll: EventFlag = @intCast(c.RGFW_mouseScrollFlag);
-    /// Enable mouse button pressed events.
-    pub const mouseButtonPressed: EventFlag = @intCast(c.RGFW_mouseButtonPressedFlag);
-    /// Enable mouse button released events.
-    pub const mouseButtonReleased: EventFlag = @intCast(c.RGFW_mouseButtonReleasedFlag);
-    /// Enable mouse motion events.
-    pub const mouseMotion: EventFlag = @intCast(c.RGFW_mouseMotionFlag);
-    /// Enable raw mouse motion events.
-    pub const mouseRawMotion: EventFlag = @intCast(c.RGFW_mouseRawMotionFlag);
-    /// Enable mouse enter events.
-    pub const mouseEnter: EventFlag = @intCast(c.RGFW_mouseEnterFlag);
-    /// Enable mouse leave events.
-    pub const mouseLeave: EventFlag = @intCast(c.RGFW_mouseLeaveFlag);
-    /// Enable window moved events.
-    pub const windowMoved: EventFlag = @intCast(c.RGFW_windowMovedFlag);
-    /// Enable window resized events.
-    pub const windowResized: EventFlag = @intCast(c.RGFW_windowResizedFlag);
-    /// Enable window focus-in events.
-    pub const windowFocusIn: EventFlag = @intCast(c.RGFW_windowFocusInFlag);
-    /// Enable window focus-out events.
-    pub const windowFocusOut: EventFlag = @intCast(c.RGFW_windowFocusOutFlag);
-    /// Enable window refresh events.
-    pub const windowRefresh: EventFlag = @intCast(c.RGFW_windowRefreshFlag);
-    /// Enable window maximized events.
-    pub const windowMaximized: EventFlag = @intCast(c.RGFW_windowMaximizedFlag);
-    /// Enable window minimized events.
-    pub const windowMinimized: EventFlag = @intCast(c.RGFW_windowMinimizedFlag);
-    /// Enable window restored events.
-    pub const windowRestored: EventFlag = @intCast(c.RGFW_windowRestoredFlag);
-    /// Enable scale updated events.
-    pub const scaleUpdated: EventFlag = @intCast(c.RGFW_scaleUpdatedFlag);
-    /// Enable window close events.
-    pub const windowClose: EventFlag = @intCast(c.RGFW_windowCloseFlag);
-    /// Enable data drop events.
-    pub const dataDrop: EventFlag = @intCast(c.RGFW_dataDropFlag);
-    /// Enable data drag events.
-    pub const dataDrag: EventFlag = @intCast(c.RGFW_dataDragFlag);
-    /// Enable monitor connected events.
-    pub const monitorConnected: EventFlag = @intCast(c.RGFW_monitorConnectedFlag);
-    /// Enable monitor disconnected events.
-    pub const monitorDisconnected: EventFlag = @intCast(c.RGFW_monitorDisconnectedFlag);
-    /// Alias for `mouseMotion` flag (may be removed in the future).
-    pub const mousePosChanged: EventFlag = @intCast(c.RGFW_mousePosChangedFlag);
-    /// All keyboard events (press, release, char).
-    pub const keyEvents: EventFlag = @intCast(c.RGFW_keyEventsFlag);
-    /// All mouse events (buttons, motion, scroll, enter, leave, raw motion).
-    pub const mouseEvents: EventFlag = @intCast(c.RGFW_mouseEventsFlag);
-    /// All window state events (move, resize, refresh, max, min, restore, scale).
-    pub const windowEvents: EventFlag = @intCast(c.RGFW_windowEventsFlag);
-    /// Window focus events (focus in, focus out).
-    pub const windowFocusEvents: EventFlag = @intCast(c.RGFW_windowFocusEventsFlag);
-    /// Drag-and-drop events (data drop, data drag).
-    pub const dataDragDropEvents: EventFlag = @intCast(c.RGFW_dataDragDropEventsFlag);
-    /// Monitor events (connected, disconnected).
-    pub const monitorEvents: EventFlag = @intCast(c.RGFW_monitorEventsFlag);
-    /// All event flags OR'd together.
-    pub const all: EventFlag = @intCast(c.RGFW_allEventFlags);
-};
-
-/// Wait mode for `waitForEvent`.
-pub const eventWait = struct {
-    /// Do not wait; return immediately if no events are pending.
-    pub const noWait: EventWait = @intCast(c.RGFW_eventNoWait);
-    /// Wait until the next event arrives (block indefinitely).
-    pub const waitNext: EventWait = @intCast(c.RGFW_eventWaitNext);
-};
-
-/// Drag-and-drop action types.
-pub const dndAction = struct {
-    /// No drag action.
-    pub const none: DndActionType = @intCast(c.RGFW_dndActionNone);
-    /// Data has been dragged into the window area.
-    pub const enter: DndActionType = @intCast(c.RGFW_dndActionEnter);
-    /// The dragged data has moved inside the window.
-    pub const move: DndActionType = @intCast(c.RGFW_dndActionMove);
-    /// The dragged data has left the window.
-    pub const exit: DndActionType = @intCast(c.RGFW_dndActionExit);
-};
-
-/// Type of transferred data (clipboard or drag-and-drop).
-pub const dataTransfer = struct {
-    /// No data.
-    pub const none: DataTransferType = @intCast(c.RGFW_dataNone);
-    /// Plain text string.
-    pub const text: DataTransferType = @intCast(c.RGFW_dataText);
-    /// File path string.
-    pub const file: DataTransferType = @intCast(c.RGFW_dataFile);
-    /// URL string.
-    pub const url: DataTransferType = @intCast(c.RGFW_dataURL);
-    /// Raw image data.
-    pub const image: DataTransferType = @intCast(c.RGFW_dataImage);
-    /// Unknown raw data.
-    pub const unknown: DataTransferType = @intCast(c.RGFW_dataUnknown);
-};
-
-/// Window creation and behavior flags (can be OR'd together).
-pub const windowFlag = struct {
-    /// Window has no border / frame / decorations.
-    pub const noBorder: WindowFlags = @intCast(c.RGFW_windowNoBorder);
-    /// Window cannot be resized by the user.
-    pub const noResize: WindowFlags = @intCast(c.RGFW_windowNoResize);
-    /// Window supports drag-and-drop.
-    pub const allowDnd: WindowFlags = @intCast(c.RGFW_windowAllowDND);
-    /// Window should hide the mouse cursor.
-    pub const hideMouse: WindowFlags = @intCast(c.RGFW_windowHideMouse);
-    /// Window is fullscreen by default.
-    pub const fullscreen: WindowFlags = @intCast(c.RGFW_windowFullscreen);
-    /// Window is translucent (best on X11/macOS).
-    pub const translucent: WindowFlags = @intCast(c.RGFW_windowTranslucent);
-    /// Alias for `translucent`.
-    pub const transparent: WindowFlags = @intCast(c.RGFW_windowTransparent);
-    /// Center the window on the screen.
-    pub const center: WindowFlags = @intCast(c.RGFW_windowCenter);
-    /// Use raw mouse input mode.
-    pub const rawMouse: WindowFlags = @intCast(c.RGFW_windowRawMouse);
-    /// Scale the window to match the monitor's DPI.
-    pub const scaleToMonitor: WindowFlags = @intCast(c.RGFW_windowScaleToMonitor);
-    /// Window starts hidden.
-    pub const hide: WindowFlags = @intCast(c.RGFW_windowHide);
-    /// Maximize the window on creation.
-    pub const maximize: WindowFlags = @intCast(c.RGFW_windowMaximize);
-    /// Center the cursor on the window on creation.
-    pub const centerCursor: WindowFlags = @intCast(c.RGFW_windowCenterCursor);
-    /// Create a floating (always-on-top) window.
-    pub const floating: WindowFlags = @intCast(c.RGFW_windowFloating);
-    /// Focus the window when it is shown.
-    pub const focusOnShow: WindowFlags = @intCast(c.RGFW_windowFocusOnShow);
-    /// Minimize the window on creation.
-    pub const minimize: WindowFlags = @intCast(c.RGFW_windowMinimize);
-    /// Window starts in focus (if possible).
-    pub const focus: WindowFlags = @intCast(c.RGFW_windowFocus);
-    /// Capture the mouse on window creation.
-    pub const captureMouse: WindowFlags = @intCast(c.RGFW_windowCaptureMouse);
-    /// Create an OpenGL context with the window.
-    pub const openGl: WindowFlags = @intCast(c.RGFW_windowOpenGL);
-    /// Create an EGL context with the window.
-    pub const egl: WindowFlags = @intCast(c.RGFW_windowEGL);
-    /// Shortcut for borderless + maximized (pseudo-fullscreen).
-    pub const windowedFullscreen: WindowFlags = @intCast(c.RGFW_windowedFullscreen);
-    /// Shortcut for captured + raw mouse.
-    pub const captureRawMouse: WindowFlags = @intCast(c.RGFW_windowCaptureRawMouse);
-};
-
-/// Target icon type for `window.setIconEx`.
-pub const icon = struct {
-    /// Set the taskbar icon only.
-    pub const taskbar: Icon = @intCast(c.RGFW_iconTaskbar);
-    /// Set the window icon only.
-    pub const window: Icon = @intCast(c.RGFW_iconWindow);
-    /// Set both the taskbar and window icons.
-    pub const both: Icon = @intCast(c.RGFW_iconBoth);
-};
-
-/// Standard system cursor icon identifiers.
-pub const mouseIcon = struct {
-    /// Normal pointer.
-    pub const normal: MouseIcon = @intCast(c.RGFW_mouseNormal);
-    /// Arrow cursor.
-    pub const arrow: MouseIcon = @intCast(c.RGFW_mouseArrow);
-    /// I-beam text selection cursor.
-    pub const ibeam: MouseIcon = @intCast(c.RGFW_mouseIbeam);
-    /// Alias for `ibeam`.
-    pub const text: MouseIcon = @intCast(c.RGFW_mouseText);
-    /// Crosshair cursor.
-    pub const crosshair: MouseIcon = @intCast(c.RGFW_mouseCrosshair);
-    /// Pointing hand cursor.
-    pub const pointingHand: MouseIcon = @intCast(c.RGFW_mousePointingHand);
-    /// East-west resize cursor.
-    pub const resizeEw: MouseIcon = @intCast(c.RGFW_mouseResizeEW);
-    /// North-south resize cursor.
-    pub const resizeNs: MouseIcon = @intCast(c.RGFW_mouseResizeNS);
-    /// Northwest-southeast resize cursor.
-    pub const resizeNwse: MouseIcon = @intCast(c.RGFW_mouseResizeNWSE);
-    /// Northeast-southwest resize cursor.
-    pub const resizeNesw: MouseIcon = @intCast(c.RGFW_mouseResizeNESW);
-    /// Northwest resize cursor.
-    pub const resizeNw: MouseIcon = @intCast(c.RGFW_mouseResizeNW);
-    /// North resize cursor.
-    pub const resizeN: MouseIcon = @intCast(c.RGFW_mouseResizeN);
-    /// Northeast resize cursor.
-    pub const resizeNe: MouseIcon = @intCast(c.RGFW_mouseResizeNE);
-    /// East resize cursor.
-    pub const resizeE: MouseIcon = @intCast(c.RGFW_mouseResizeE);
-    /// Southeast resize cursor.
-    pub const resizeSe: MouseIcon = @intCast(c.RGFW_mouseResizeSE);
-    /// South resize cursor.
-    pub const resizeS: MouseIcon = @intCast(c.RGFW_mouseResizeS);
-    /// Southwest resize cursor.
-    pub const resizeSw: MouseIcon = @intCast(c.RGFW_mouseResizeSW);
-    /// West resize cursor.
-    pub const resizeW: MouseIcon = @intCast(c.RGFW_mouseResizeW);
-    /// Resize all / move cursor.
-    pub const resizeAll: MouseIcon = @intCast(c.RGFW_mouseResizeAll);
-    /// Not allowed cursor.
-    pub const notAllowed: MouseIcon = @intCast(c.RGFW_mouseNotAllowed);
-    /// Wait / busy cursor.
-    pub const wait: MouseIcon = @intCast(c.RGFW_mouseWait);
-    /// Progress (working in background) cursor.
-    pub const progress: MouseIcon = @intCast(c.RGFW_mouseProgress);
-    /// Number of standard mouse icon types.
-    pub const count: MouseIcon = @intCast(c.RGFW_mouseIconCount);
-    /// Padding value for alignment.
-    pub const final: MouseIcon = @intCast(c.RGFW_mouseIconFinal);
-};
-
-/// Window flash request types.
-pub const flashRequest = struct {
-    /// Cancel any pending flash.
-    pub const cancel: FlashRequest = @intCast(c.RGFW_flashCancel);
-    /// Flash the window briefly to draw attention.
-    pub const briefly: FlashRequest = @intCast(c.RGFW_flashBriefly);
-    /// Flash the window until it gains focus.
-    pub const untilFocused: FlashRequest = @intCast(c.RGFW_flashUntilFocused);
-};
-
-/// Debug message severity levels.
-pub const debugType = struct {
-    /// Error message.
-    pub const err: DebugType = @intCast(c.RGFW_typeError);
-    /// Warning message.
-    pub const warning: DebugType = @intCast(c.RGFW_typeWarning);
-    /// Informational message.
-    pub const info: DebugType = @intCast(c.RGFW_typeInfo);
-};
-
-/// Specific error and informational codes returned by RGFW.
-pub const errorCode = struct {
-    /// No error.
-    pub const none: ErrorCode = @intCast(c.RGFW_noError);
-    /// Out of memory.
-    pub const outOfMemory: ErrorCode = @intCast(c.RGFW_errOutOfMemory);
-    /// Native OpenGL context creation failed.
-    pub const openGlContext: ErrorCode = @intCast(c.RGFW_errOpenGLContext);
-    /// EGL context creation failed.
-    pub const eglContext: ErrorCode = @intCast(c.RGFW_errEGLContext);
-    /// Wayland initialization failed.
-    pub const wayland: ErrorCode = @intCast(c.RGFW_errWayland);
-    /// X11 initialization failed.
-    pub const x11: ErrorCode = @intCast(c.RGFW_errX11);
-    /// DirectX context creation failed.
-    pub const directxContext: ErrorCode = @intCast(c.RGFW_errDirectXContext);
-    /// IOKit initialization failed (macOS).
-    pub const ioKit: ErrorCode = @intCast(c.RGFW_errIOKit);
-    /// Clipboard operation failed.
-    pub const clipboard: ErrorCode = @intCast(c.RGFW_errClipboard);
-    /// Failed to load a required function/library.
-    pub const failedFuncLoad: ErrorCode = @intCast(c.RGFW_errFailedFuncLoad);
-    /// Buffer creation failed.
-    pub const buffer: ErrorCode = @intCast(c.RGFW_errBuffer);
-    /// Metal API error.
-    pub const metal: ErrorCode = @intCast(c.RGFW_errMetal);
-    /// Platform-specific error.
-    pub const platform: ErrorCode = @intCast(c.RGFW_errPlatform);
-    /// Event queue limit reached.
-    pub const eventQueue: ErrorCode = @intCast(c.RGFW_errEventQueue);
-    /// RGFW context not initialized.
-    pub const noInit: ErrorCode = @intCast(c.RGFW_errNoInit);
-    /// Informational: window created/freed.
-    pub const infoWindow: ErrorCode = @intCast(c.RGFW_infoWindow);
-    /// Informational: buffer operation.
-    pub const infoBuffer: ErrorCode = @intCast(c.RGFW_infoBuffer);
-    /// Informational: global context operation.
-    pub const infoGlobal: ErrorCode = @intCast(c.RGFW_infoGlobal);
-    /// Informational: OpenGL context operation.
-    pub const infoOpenGl: ErrorCode = @intCast(c.RGFW_infoOpenGL);
-    /// Warning: Wayland fallback.
-    pub const warningWayland: ErrorCode = @intCast(c.RGFW_warningWayland);
-    /// Warning: OpenGL operation.
-    pub const warningOpenGl: ErrorCode = @intCast(c.RGFW_warningOpenGL);
-};
-
-/// OpenGL context release behavior hints.
-pub const glReleaseBehavior = struct {
-    /// Flush the pipeline when the context is released.
-    pub const flush: GlReleaseBehavior = @intCast(c.RGFW_glReleaseFlush);
-    /// Do nothing on release.
-    pub const none: GlReleaseBehavior = @intCast(c.RGFW_glReleaseNone);
-};
-
-/// OpenGL profile hints for context creation.
-pub const glProfile = struct {
-    /// Core profile (only the requested version features).
-    pub const core: GlProfile = @intCast(c.RGFW_glCore);
-    /// Forward-compatible profile (no deprecated features).
-    pub const forwardCompatibility: GlProfile = @intCast(c.RGFW_glForwardCompatibility);
-    /// Compatibility profile (all features up to the requested version).
-    pub const compatibility: GlProfile = @intCast(c.RGFW_glCompatibility);
-    /// OpenGL ES profile.
-    pub const es: GlProfile = @intCast(c.RGFW_glES);
-    /// WebGL profile (version is mapped to GLES equivalent).
-    pub const web: GlProfile = @intCast(c.RGFW_glWeb);
-};
-
-/// OpenGL renderer hints.
-pub const glRenderer = struct {
-    /// Hardware-accelerated (GPU) rendering.
-    pub const accelerated: GlRenderer = @intCast(c.RGFW_glAccelerated);
-    /// Software (CPU) rendering.
-    pub const software: GlRenderer = @intCast(c.RGFW_glSoftware);
-};
 
 /// Convert a Zig `bool` to a C `RGFW_bool` (u8: 0 or 1).
 fn boolToC(value: bool) c.RGFW_bool {
