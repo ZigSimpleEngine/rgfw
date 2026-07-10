@@ -1,7 +1,7 @@
 //! Zig bindings for the RGFW single-header GUI library.
 //! Provides a cross-platform windowing, input, and rendering abstraction layer.
 //! RGFW supports Windows (WinAPI), macOS (Cocoa), X11, and Wayland backends.
-
+const std = @import("std");
 const c = @cImport({
     @cInclude("RGFW.h");
 });
@@ -57,10 +57,8 @@ pub const Key = enum(u8) {
     tab = c.RGFW_keyTab,
     backspace = c.RGFW_keyBackSpace,
     delete = c.RGFW_keyDelete,
-    return_key = c.RGFW_keyReturn,
     minus = c.RGFW_keyMinus,
     equal = c.RGFW_keyEqual,
-    equals = c.RGFW_keyEquals,
     period = c.RGFW_keyPeriod,
     comma = c.RGFW_keyComma,
     slash = c.RGFW_keySlash,
@@ -94,7 +92,6 @@ pub const Key = enum(u8) {
     pad_plus = c.RGFW_keyPadPlus,
     pad_minus = c.RGFW_keyPadMinus,
     pad_equal = c.RGFW_keyPadEqual,
-    pad_equals = c.RGFW_keyPadEquals,
     pad_1 = c.RGFW_keyPad1,
     pad_2 = c.RGFW_keyPad2,
     pad_3 = c.RGFW_keyPad3,
@@ -173,7 +170,11 @@ pub const Key = enum(u8) {
     f23 = c.RGFW_keyF23,
     f24 = c.RGFW_keyF24,
     f25 = c.RGFW_keyF25,
-    last = c.RGFW_keyLast,
+    last = 255,
+
+    pub const equals = c.RGFW_keyEquals;
+    pub const return_key = c.RGFW_keyReturn;
+    pub const pad_equals = c.RGFW_keyPadEquals;
 };
 
 /// Abstract mouse button identifier.
@@ -200,6 +201,8 @@ pub const KeyMod = packed struct(u8) {
     super_key: bool = false,
     scrollLock: bool = false,
     _: u1 = 0,
+
+    pub const none: @This() = KeyMod{};
 };
 
 /// Flags for library initialization (OpenGL, EGL, Vulkan, X11) — bit flags.
@@ -540,16 +543,227 @@ pub const Image = struct {
     format: Format,
 };
 
-/// Union of all possible event types. Use the `type` field to discriminate.
-pub const Event = c.RGFW_event;
-/// Describes a clipboard data transfer (data pointer, length, type).
-pub const DataTransfer = c.RGFW_dataTransfer;
+pub const CommonEvent = extern struct {
+    type: EventType = .none,
+    win: ?*Window = null,
+};
+
+pub const WindowFocusEvent = extern struct {
+    type: EventType = .none,
+    win: ?*Window = null,
+    state: bool = false,
+};
+pub const MouseButtonEvent = extern struct {
+    type: EventType = .none,
+    win: ?*Window = null,
+    value: MouseButton = .left,
+    state: bool = false,
+};
+
+pub const MouseDeltaEvent = extern struct {
+    type: EventType = .none,
+    win: ?*Window = null,
+    x: f32 = 0,
+    y: f32 = 0,
+};
+
+pub const MouseMotionEvent = extern struct {
+    type: EventType = .none,
+    win: ?*Window = null,
+    x: i32 = 0,
+    y: i32 = 0,
+    inWindow: bool = false,
+};
+
+pub const KeyEvent = extern struct {
+    type: EventType = .none,
+    win: ?*Window = null,
+    value: Key = .none,
+    repeat: bool = false,
+    mod: KeyMod = .none,
+    state: bool = false,
+};
+
+pub const KeyCharEvent = extern struct {
+    type: EventType = .none,
+    win: ?*Window = null,
+    value: u32 = 0,
+};
+
 /// A single node in the linked list of dropped data items.
-pub const DataDropNode = c.RGFW_dataDropNode;
+pub const DataDropNode = extern struct {
+    data: [*c]const u8 = null,
+    length: usize = 0,
+    type: DataTransferType = .none,
+    next: [*c]DataDropNode = null,
+};
+
+pub const DataDropEvent = extern struct {
+    type: EventType = .none,
+    win: ?*Window = null,
+    value: [*c]const DataDropNode = null,
+};
+
+pub const DataDragEvent = extern struct {
+    type: EventType = .none,
+    win: ?*Window = null,
+    x: i32 = 0,
+    y: i32 = 0,
+    action: DndActionType = .none,
+    dataType: DataTransferType = .none,
+};
+
+pub const ScaleUpdatedEvent = extern struct {
+    type: EventType = .none,
+    win: ?*Window = null,
+    x: f32 = 0,
+    y: f32 = 0,
+};
+
+pub const MonitorEvent = extern struct {
+    type: EventType = .none,
+    win: ?*Window = null,
+    monitor: ?*const Monitor = null,
+    state: bool = false,
+};
+
+pub const WindowUpdateEvent = extern struct {
+    type: EventType = .none,
+    win: ?*Window = null,
+    x: i32 = 0,
+    y: i32 = 0,
+    w: i32 = 0,
+    h: i32 = 0,
+};
+
+pub fn checkEvent(event: *Event) bool {
+    return boolFromC(c.RGFW_checkEvent(@ptrCast(event)));
+}
+
+pub fn checkQueuedEvent(event: *Event) bool {
+    return boolFromC(c.RGFW_checkQueuedEvent(@ptrCast(event)));
+}
+
+pub fn eventQueuePush(event: *const Event) void {
+    c.RGFW_eventQueuePush(@ptrCast(event));
+}
+
+pub fn eventQueuePushAndCall(event: *const Event) void {
+    c.RGFW_eventQueuePushAndCall(@ptrCast(event));
+}
+
+/// Union of all possible event types. Use the `type` field to discriminate.
+pub const Event = extern union {
+    type: EventType,
+    common: CommonEvent,
+    focus: WindowFocusEvent,
+    update: WindowUpdateEvent,
+    button: MouseButtonEvent,
+    delta: MouseDeltaEvent,
+    mouse: MouseMotionEvent,
+    key: KeyEvent,
+    keyChar: KeyCharEvent,
+    drop: DataDropEvent,
+    drag: DataDragEvent,
+    scale: ScaleUpdatedEvent,
+    monitor: MonitorEvent,
+
+    pub fn toString(self: *const Event, allocator: std.mem.Allocator) ![]u8 {
+        return switch (self.type) {
+            .none => std.fmt.allocPrint(allocator, "None", .{}),
+
+            .keyPressed,
+            .keyReleased,
+            => std.fmt.allocPrint(allocator, "{}", .{self.key}),
+
+            .keyChar => std.fmt.allocPrint(allocator, "{}", .{self.keyChar}),
+
+            .mouseButtonPressed,
+            .mouseButtonReleased,
+            => std.fmt.allocPrint(allocator, "{}", .{self.button}),
+
+            .mouseScroll,
+            .mouseRawMotion,
+            => std.fmt.allocPrint(allocator, "{}", .{self.delta}),
+
+            .mouseMotion,
+            .mouseEnter,
+            .mouseLeave,
+            => std.fmt.allocPrint(allocator, "{}", .{self.mouse}),
+
+            .windowMoved,
+            .windowResized,
+            .windowRefresh,
+            .windowClose,
+            .windowMaximized,
+            .windowMinimized,
+            .windowRestored,
+            => std.fmt.allocPrint(allocator, "{}", .{self.update}),
+
+            .windowFocusIn,
+            .windowFocusOut,
+            => std.fmt.allocPrint(allocator, "{}", .{self.focus}),
+
+            .dataDrop => std.fmt.allocPrint(allocator, "{}", .{self.drop}),
+
+            .dataDrag => std.fmt.allocPrint(allocator, "{}", .{self.drag}),
+
+            .scaleUpdated => std.fmt.allocPrint(allocator, "{}", .{self.scale}),
+
+            .monitorConnected,
+            .monitorDisconnected,
+            => std.fmt.allocPrint(allocator, "{}", .{self.monitor}),
+
+            .count => unreachable,
+        };
+    }
+};
+
+extern fn RGFW_writeClipboard(data: *const DataTransfer) bool;
+
+/// Describes a clipboard data transfer (data pointer, length, type).
+pub const DataTransfer = extern struct {
+    data: [*c]const u8 = null,
+    length: usize = 0,
+    type: DataTransferType = .none,
+
+    pub const writeClipboard = RGFW_writeClipboard;
+};
+pub const genericFunc = ?*const fn (e: *const Event) callconv(.c) void;
 /// Holds an array of callback function pointers for every event type.
-pub const Callbacks = c.RGFW_callbacks;
+pub const Callbacks = extern struct {
+    arr: [25]genericFunc = @import("std").mem.zeroes([25]genericFunc),
+};
+
 /// OpenGL / EGL context creation hints (buffer sizes, profile, version, etc.).
-pub const GlHints = c.RGFW_glHints;
+pub const GlHints = extern struct {
+    stencil: i32 = 0,
+    samples: i32 = 0,
+    stereo: i32 = 0,
+    auxBuffers: i32 = 0,
+    doubleBuffer: i32 = 0,
+    red: i32 = 0,
+    green: i32 = 0,
+    blue: i32 = 0,
+    alpha: i32 = 0,
+    depth: i32 = 0,
+    accumRed: i32 = 0,
+    accumGreen: i32 = 0,
+    accumBlue: i32 = 0,
+    accumAlpha: i32 = 0,
+    sRGB: bool = false,
+    robustness: bool = false,
+    debug: bool = false,
+    noError: bool = false,
+    releaseBehavior: GlReleaseBehavior = .flush,
+    profile: GlProfile = .core,
+    major: i32 = 0,
+    minor: i32 = 0,
+    share: ?*GlContext = null,
+    shareEGL: ?*EglContext = null,
+    renderer: GlRenderer = 0,
+};
+
 /// Generic function pointer returned by OpenGL/EGL proc-address queries.
 pub const Proc = c.RGFW_proc;
 /// Function pointer type for loading OpenGL/EGL/Vulkan procedures by name.
@@ -1121,17 +1335,6 @@ pub fn pollEvents() void {
 /// Force `waitForEvent` to stop waiting early (used for inter-thread signalling).
 pub fn stopCheckEvents() void {
     c.RGFW_stopCheckEvents();
-}
-
-/// Poll and pop the next event from the queue. Returns `true` if an event was found.
-/// If no events are queued, this will internally poll for new events.
-pub fn checkEvent(event: *Event) bool {
-    return boolFromC(c.RGFW_checkEvent(ptrCast(*c.RGFW_event, event)));
-}
-
-/// Pop the first queued event without polling. Returns `true` if an event was found.
-pub fn checkQueuedEvent(event: *Event) bool {
-    return boolFromC(c.RGFW_checkQueuedEvent(ptrCast(*c.RGFW_event, event)));
 }
 
 /// Enable or disable event queuing. When enabled, events are stored in a FIFO queue.
