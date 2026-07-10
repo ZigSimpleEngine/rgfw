@@ -3,7 +3,7 @@
 const std = @import("std");
 const rgfw = @import("rgfw");
 
-pub fn main(init: std.process.Init) !void {
+pub fn main() !void {
     // Initialize the RGFW library (0 = success, negative = error, positive = warning)
     const init_result = rgfw.init(null, .{ .openGl = true });
     if (init_result < 0) {
@@ -31,9 +31,7 @@ pub fn main(init: std.process.Init) !void {
         if (rgfw.checkEvent(&event)) {
             const eventType = event.type;
             if (previousEventType != eventType) {
-                const type_string = try event.toString(init.gpa);
-                defer init.gpa.free(type_string);
-                std.debug.print("{s}\n", .{type_string});
+                std.debug.print("{f}\n", .{event});
                 previousEventType = eventType;
             }
         }

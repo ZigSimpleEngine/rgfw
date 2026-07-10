@@ -668,28 +668,31 @@ pub const Event = extern union {
     scale: ScaleUpdatedEvent,
     monitor: MonitorEvent,
 
-    pub fn toString(self: *const Event, allocator: std.mem.Allocator) ![]u8 {
-        return switch (self.type) {
-            .none => std.fmt.allocPrint(allocator, "None", .{}),
+    pub fn format(
+        self: @This(),
+        writer: *std.Io.Writer,
+    ) std.Io.Writer.Error!void {
+        switch (self.type) {
+            .none => try writer.writeAll("None"),
 
             .keyPressed,
             .keyReleased,
-            => std.fmt.allocPrint(allocator, "{}", .{self.key}),
+            => try writer.print("{}", .{self.key}),
 
-            .keyChar => std.fmt.allocPrint(allocator, "{}", .{self.keyChar}),
+            .keyChar => try writer.print("{}", .{self.keyChar}),
 
             .mouseButtonPressed,
             .mouseButtonReleased,
-            => std.fmt.allocPrint(allocator, "{}", .{self.button}),
+            => try writer.print("{}", .{self.button}),
 
             .mouseScroll,
             .mouseRawMotion,
-            => std.fmt.allocPrint(allocator, "{}", .{self.delta}),
+            => try writer.print("{}", .{self.delta}),
 
             .mouseMotion,
             .mouseEnter,
             .mouseLeave,
-            => std.fmt.allocPrint(allocator, "{}", .{self.mouse}),
+            => try writer.print("{}", .{self.mouse}),
 
             .windowMoved,
             .windowResized,
@@ -698,24 +701,24 @@ pub const Event = extern union {
             .windowMaximized,
             .windowMinimized,
             .windowRestored,
-            => std.fmt.allocPrint(allocator, "{}", .{self.update}),
+            => try writer.print("{}", .{self.update}),
 
             .windowFocusIn,
             .windowFocusOut,
-            => std.fmt.allocPrint(allocator, "{}", .{self.focus}),
+            => try writer.print("{}", .{self.focus}),
 
-            .dataDrop => std.fmt.allocPrint(allocator, "{}", .{self.drop}),
+            .dataDrop => try writer.print("{}", .{self.drop}),
 
-            .dataDrag => std.fmt.allocPrint(allocator, "{}", .{self.drag}),
+            .dataDrag => try writer.print("{}", .{self.drag}),
 
-            .scaleUpdated => std.fmt.allocPrint(allocator, "{}", .{self.scale}),
+            .scaleUpdated => try writer.print("{}", .{self.scale}),
 
             .monitorConnected,
             .monitorDisconnected,
-            => std.fmt.allocPrint(allocator, "{}", .{self.monitor}),
+            => try writer.print("{}", .{self.monitor}),
 
             .count => unreachable,
-        };
+        }
     }
 };
 
