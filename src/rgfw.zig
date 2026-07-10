@@ -2,14 +2,13 @@
 //! Provides a cross-platform windowing, input, and rendering abstraction layer.
 //! RGFW supports Windows (WinAPI), macOS (Cocoa), X11, and Wayland backends.
 const std = @import("std");
+const opts = @import("rgfw_options");
 const c = @cImport({
     @cInclude("RGFW.h");
 });
 
-/// General error type for operations that may reference missing platform-specific declarations.
+/// General error type for operations that may fail at runtime.
 pub const Error = error{
-    /// The requested function or declaration is not available in the current build configuration.
-    MissingDeclaration,
     /// The underlying C function returned a null pointer when a valid pointer was expected.
     NullPointer,
 };
@@ -1264,19 +1263,16 @@ pub fn usingWayland() bool {
 
 /// Retrieves the current Cocoa layer pointer (macOS only). Returns null on other platforms.
 pub fn getLayerOsx() ?*anyopaque {
-    if (!@hasDecl(c, "RGFW_getLayer_OSX")) return null;
     return c.RGFW_getLayer_OSX();
 }
 
 /// Retrieves the current X11 Display pointer. Returns null if not on X11.
 pub fn getDisplayX11() ?*anyopaque {
-    if (!@hasDecl(c, "RGFW_getDisplay_X11")) return null;
     return c.RGFW_getDisplay_X11();
 }
 
 /// Retrieves the current Wayland display (`wl_display*`) pointer. Returns null if not on Wayland.
 pub fn getDisplayWayland() ?*WlDisplay {
-    if (!@hasDecl(c, "RGFW_getDisplay_Wayland")) return null;
     const display = c.RGFW_getDisplay_Wayland();
     return if (display == null) null else ptrCast(*WlDisplay, display);
 }
@@ -1294,15 +1290,13 @@ pub fn copyImageData(dest: []u8, size: Size, dest_format: Format, src: []u8, src
 
 /// 64-bit aware image data copy with format conversion.
 /// `is_64_bit` indicates whether the image data uses 64-bit pixels.
-pub fn copyImageData64(dest: []u8, size: Size, dest_format: Format, src: []u8, src_format: Format, is_64_bit: bool, func: ConvertImageDataFunc) Error!void {
-    if (!@hasDecl(c, "RGFW_copyImageData64")) return Error.MissingDeclaration;
+pub fn copyImageData64(dest: []u8, size: Size, dest_format: Format, src: []u8, src_format: Format, is_64_bit: bool, func: ConvertImageDataFunc) void {
     c.RGFW_copyImageData64(dest.ptr, size.w, size.h, @intFromEnum(dest_format), src.ptr, @intFromEnum(src_format), boolToC(is_64_bit), func);
 }
 
 /// Convert raw pixel data between color layouts (e.g. RGB ↔ BGR).
 /// Uses source and destination layout descriptors. `is_64_bit` controls stride.
-pub fn convertImageData64(dest: []u8, src: []u8, src_layout: *const ColorLayout, dest_layout: *const ColorLayout, count: usize, is_64_bit: bool) Error!void {
-    if (!@hasDecl(c, "RGFW_convertImageData64")) return Error.MissingDeclaration;
+pub fn convertImageData64(dest: []u8, src: []u8, src_layout: *const ColorLayout, dest_layout: *const ColorLayout, count: usize, is_64_bit: bool) void {
     c.RGFW_convertImageData64(dest.ptr, src.ptr, ptrCast(*const c.RGFW_colorLayout, src_layout), ptrCast(*const c.RGFW_colorLayout, dest_layout), count, boolToC(is_64_bit));
 }
 
@@ -1457,28 +1451,24 @@ pub fn physicalToMappedKey(keycode: Key) Key {
 }
 
 /// Check if a string contains any non-ASCII characters (>= 0x80).
-pub fn isLatin(text: []const u8) Error!bool {
-    if (!@hasDecl(c, "RGFW_isLatin")) return Error.MissingDeclaration;
+pub fn isLatin(text: []const u8) bool {
     return boolFromC(c.RGFW_isLatin(text.ptr, text.len));
 }
 
 /// Decode a single UTF-8 codepoint from `text` starting at `starting_index`.
 /// Advances `starting_index` past the decoded sequence.
-pub fn decodeUtf8(text: [:0]const u8, starting_index: *usize) Error!u32 {
-    if (!@hasDecl(c, "RGFW_decodeUTF8")) return Error.MissingDeclaration;
+pub fn decodeUtf8(text: [:0]const u8, starting_index: *usize) u32 {
     return @intCast(c.RGFW_decodeUTF8(text.ptr, starting_index));
 }
 
 /// Check if a specific OpenGL extension string is present in the given extension list.
 /// Uses string matching (not the OpenGL API directly).
-pub fn extensionSupportedStr(extensions: [:0]const u8, extension: []const u8) Error!bool {
-    if (!@hasDecl(c, "RGFW_extensionSupportedStr")) return Error.MissingDeclaration;
+pub fn extensionSupportedStr(extensions: [:0]const u8, extension: []const u8) bool {
     return boolFromC(c.RGFW_extensionSupportedStr(extensions.ptr, extension.ptr, extension.len));
 }
 
 /// Check if an OpenGL extension is supported using a custom procedure loader.
-pub fn extensionSupportedBase(extension: []const u8, get_proc_address: ProcLoader) Error!bool {
-    if (!@hasDecl(c, "RGFW_extensionSupported_base")) return Error.MissingDeclaration;
+pub fn extensionSupportedBase(extension: []const u8, get_proc_address: ProcLoader) bool {
     return boolFromC(c.RGFW_extensionSupported_base(extension.ptr, extension.len, @ptrCast(get_proc_address)));
 }
 
@@ -1603,44 +1593,37 @@ pub const window = struct {
     }
 
     /// Set the macOS CALayer for the window (macOS only).
-    pub fn setLayerOsx(win: *Window, layer: ?*anyopaque) Error!void {
-        if (!@hasDecl(c, "RGFW_window_setLayer_OSX")) return Error.MissingDeclaration;
+    pub fn setLayerOsx(win: *Window, layer: ?*anyopaque) void {
         c.RGFW_window_setLayer_OSX(cWindow(win), layer);
     }
 
     /// Get the macOS NSView for the window (macOS only).
-    pub fn getViewOsx(win: *Window) Error!?*anyopaque {
-        if (!@hasDecl(c, "RGFW_window_getView_OSX")) return Error.MissingDeclaration;
+    pub fn getViewOsx(win: *Window) ?*anyopaque {
         return c.RGFW_window_getView_OSX(cWindow(win));
     }
 
     /// Get the macOS NSWindow for the window (macOS only).
-    pub fn getWindowOsx(win: *Window) Error!?*anyopaque {
-        if (!@hasDecl(c, "RGFW_window_getWindow_OSX")) return Error.MissingDeclaration;
+    pub fn getWindowOsx(win: *Window) ?*anyopaque {
         return c.RGFW_window_getWindow_OSX(cWindow(win));
     }
 
     /// Get the Windows HWND handle (Windows only).
-    pub fn getHwnd(win: *Window) Error!?*anyopaque {
-        if (!@hasDecl(c, "RGFW_window_getHWND")) return Error.MissingDeclaration;
+    pub fn getHwnd(win: *Window) ?*anyopaque {
         return c.RGFW_window_getHWND(cWindow(win));
     }
 
     /// Get the Windows HDC (device context) handle (Windows only).
-    pub fn getHdc(win: *Window) Error!?*anyopaque {
-        if (!@hasDecl(c, "RGFW_window_getHDC")) return Error.MissingDeclaration;
+    pub fn getHdc(win: *Window) ?*anyopaque {
         return c.RGFW_window_getHDC(cWindow(win));
     }
 
     /// Get the X11 Window ID (X11 only).
-    pub fn getWindowX11(win: *Window) Error!u64 {
-        if (!@hasDecl(c, "RGFW_window_getWindow_X11")) return Error.MissingDeclaration;
+    pub fn getWindowX11(win: *Window) u64 {
         return @intCast(c.RGFW_window_getWindow_X11(cWindow(win)));
     }
 
     /// Get the Wayland `wl_surface*` for the window (Wayland only).
-    pub fn getWindowWayland(win: *Window) Error!?*WlSurface {
-        if (!@hasDecl(c, "RGFW_window_getWindow_Wayland")) return Error.MissingDeclaration;
+    pub fn getWindowWayland(win: *Window) ?*WlSurface {
         const surface_ptr = c.RGFW_window_getWindow_Wayland(cWindow(win));
         return if (surface_ptr == null) null else ptrCast(*WlSurface, surface_ptr);
     }
@@ -1841,8 +1824,8 @@ pub const window = struct {
     }
 
     /// Toggle mouse passthrough for the window (clicks pass through to windows behind).
-    pub fn setMousePassthrough(win: *Window, passthrough: bool) Error!void {
-        if (!@hasDecl(c, "RGFW_window_setMousePassthrough")) return Error.MissingDeclaration;
+    /// Requires RGFW to be compiled without `RGFW_NO_PASSTHROUGH`.
+    pub fn setMousePassthrough(win: *Window, passthrough: bool) void {
         c.RGFW_window_setMousePassthrough(cWindow(win), boolToC(passthrough));
     }
 
@@ -2266,242 +2249,207 @@ pub const clipboard = struct {
 };
 
 /// Native OpenGL context creation and management (not EGL).
+/// Requires RGFW to be compiled with `RGFW_OPENGL` (enabled by default).
 pub const opengl = struct {
     /// Set the global OpenGL hints used for context creation.
-    pub fn setGlobalHints(hints: *GlHints) Error!void {
-        if (!@hasDecl(c, "RGFW_setGlobalHints_OpenGL")) return Error.MissingDeclaration;
+    pub fn setGlobalHints(hints: *GlHints) void {
         c.RGFW_setGlobalHints_OpenGL(ptrCast(*c.RGFW_glHints, hints));
     }
 
     /// Reset the global OpenGL hints to their default values.
-    pub fn resetGlobalHints() Error!void {
-        if (!@hasDecl(c, "RGFW_resetGlobalHints_OpenGL")) return Error.MissingDeclaration;
+    pub fn resetGlobalHints() void {
         c.RGFW_resetGlobalHints_OpenGL();
     }
 
     /// Get a pointer to the current global OpenGL hints.
-    pub fn getGlobalHints() Error!?*GlHints {
-        if (!@hasDecl(c, "RGFW_getGlobalHints_OpenGL")) return Error.MissingDeclaration;
+    pub fn getGlobalHints() ?*GlHints {
         const hints = c.RGFW_getGlobalHints_OpenGL();
         return if (hints == null) null else ptrCast(*GlHints, hints);
     }
 
     /// Create and allocate a new native OpenGL context for a window.
-    pub fn createContext(win: *Window, hints: ?*GlHints) Error!?*GlContext {
-        if (!@hasDecl(c, "RGFW_window_createContext_OpenGL")) return Error.MissingDeclaration;
+    pub fn createContext(win: *Window, hints: ?*GlHints) ?*GlContext {
         const ctx = c.RGFW_window_createContext_OpenGL(cWindow(win), if (hints) |h| ptrCast(*c.RGFW_glHints, h) else null);
         return zigGlContext(ctx);
     }
 
     /// Create a native OpenGL context using a pre-allocated `GlContext` structure.
-    pub fn createContextPtr(win: *Window, ctx: *GlContext, hints: ?*GlHints) Error!bool {
-        if (!@hasDecl(c, "RGFW_window_createContextPtr_OpenGL")) return Error.MissingDeclaration;
+    pub fn createContextPtr(win: *Window, ctx: *GlContext, hints: ?*GlHints) bool {
         return boolFromC(c.RGFW_window_createContextPtr_OpenGL(cWindow(win), cGlContext(ctx), if (hints) |h| ptrCast(*c.RGFW_glHints, h) else null));
     }
 
     /// Get the native OpenGL context associated with a window.
-    pub fn getContext(win: *Window) Error!?*GlContext {
-        if (!@hasDecl(c, "RGFW_window_getContext_OpenGL")) return Error.MissingDeclaration;
+    pub fn getContext(win: *Window) ?*GlContext {
         return zigGlContext(c.RGFW_window_getContext_OpenGL(cWindow(win)));
     }
 
     /// Delete and free a native OpenGL context.
-    pub fn deleteContext(win: *Window, ctx: *GlContext) Error!void {
-        if (!@hasDecl(c, "RGFW_window_deleteContext_OpenGL")) return Error.MissingDeclaration;
+    pub fn deleteContext(win: *Window, ctx: *GlContext) void {
         c.RGFW_window_deleteContext_OpenGL(cWindow(win), cGlContext(ctx));
     }
 
     /// Delete a native OpenGL context without freeing its memory.
-    pub fn deleteContextPtr(win: *Window, ctx: *GlContext) Error!void {
-        if (!@hasDecl(c, "RGFW_window_deleteContextPtr_OpenGL")) return Error.MissingDeclaration;
+    pub fn deleteContextPtr(win: *Window, ctx: *GlContext) void {
         c.RGFW_window_deleteContextPtr_OpenGL(cWindow(win), cGlContext(ctx));
     }
 
     /// Get the underlying native OpenGL context handle from a `GlContext`.
-    pub fn contextGetSourceContext(ctx: *GlContext) Error!?*anyopaque {
-        if (!@hasDecl(c, "RGFW_glContext_getSourceContext")) return Error.MissingDeclaration;
+    pub fn contextGetSourceContext(ctx: *GlContext) ?*anyopaque {
         return c.RGFW_glContext_getSourceContext(cGlContext(ctx));
     }
 
     /// Make the window the current OpenGL drawing target.
-    pub fn makeCurrentWindow(win: *Window) Error!void {
-        if (!@hasDecl(c, "RGFW_window_makeCurrentWindow_OpenGL")) return Error.MissingDeclaration;
+    pub fn makeCurrentWindow(win: *Window) void {
         c.RGFW_window_makeCurrentWindow_OpenGL(cWindow(win));
     }
 
     /// Make the window's OpenGL context current (or null to detach).
-    pub fn makeCurrentContext(win: ?*Window) Error!void {
-        if (!@hasDecl(c, "RGFW_window_makeCurrentContext_OpenGL")) return Error.MissingDeclaration;
+    pub fn makeCurrentContext(win: ?*Window) void {
         c.RGFW_window_makeCurrentContext_OpenGL(if (win) |w| cWindow(w) else null);
     }
 
     /// Swap the front and back OpenGL buffers for the window.
-    pub fn swapBuffers(win: *Window) Error!void {
-        if (!@hasDecl(c, "RGFW_window_swapBuffers_OpenGL")) return Error.MissingDeclaration;
+    pub fn swapBuffers(win: *Window) void {
         c.RGFW_window_swapBuffers_OpenGL(cWindow(win));
     }
 
     /// Set the OpenGL swap interval (VSync). 0 = off, 1 = on.
-    pub fn swapInterval(win: *Window, interval: i32) Error!void {
-        if (!@hasDecl(c, "RGFW_window_swapInterval_OpenGL")) return Error.MissingDeclaration;
+    pub fn swapInterval(win: *Window, interval: i32) void {
         c.RGFW_window_swapInterval_OpenGL(cWindow(win), interval);
     }
 
     /// Get the currently active OpenGL context handle.
-    pub fn getCurrentContext() Error!?*anyopaque {
-        if (!@hasDecl(c, "RGFW_getCurrentContext_OpenGL")) return Error.MissingDeclaration;
+    pub fn getCurrentContext() ?*anyopaque {
         return c.RGFW_getCurrentContext_OpenGL();
     }
 
     /// Get the window that owns the currently active OpenGL context.
-    pub fn getCurrentWindow() Error!?*Window {
-        if (!@hasDecl(c, "RGFW_getCurrentWindow_OpenGL")) return Error.MissingDeclaration;
+    pub fn getCurrentWindow() ?*Window {
         return zigWindow(c.RGFW_getCurrentWindow_OpenGL());
     }
 
     /// Get a native OpenGL function pointer by name.
-    pub fn getProcAddress(procname: [:0]const u8) Error!Proc {
-        if (!@hasDecl(c, "RGFW_getProcAddress_OpenGL")) return Error.MissingDeclaration;
+    pub fn getProcAddress(procname: [:0]const u8) Proc {
         return c.RGFW_getProcAddress_OpenGL(procname.ptr);
     }
 
     /// Check if an OpenGL extension is supported in the current context.
-    pub fn extensionSupported(extension: []const u8) Error!bool {
-        if (!@hasDecl(c, "RGFW_extensionSupported_OpenGL")) return Error.MissingDeclaration;
+    pub fn extensionSupported(extension: []const u8) bool {
         return boolFromC(c.RGFW_extensionSupported_OpenGL(extension.ptr, extension.len));
     }
 
     /// Check if a platform-specific OpenGL extension is supported.
-    pub fn extensionSupportedPlatform(extension: []const u8) Error!bool {
-        if (!@hasDecl(c, "RGFW_extensionSupportedPlatform_OpenGL")) return Error.MissingDeclaration;
+    pub fn extensionSupportedPlatform(extension: []const u8) bool {
         return boolFromC(c.RGFW_extensionSupportedPlatform_OpenGL(extension.ptr, extension.len));
     }
 };
 
 /// EGL context creation and management.
+/// Requires RGFW to be compiled with `RGFW_EGL`.
 pub const egl = struct {
     /// Create and allocate a new EGL context for a window.
-    pub fn createContext(win: *Window, hints: ?*GlHints) Error!?*EglContext {
-        if (!@hasDecl(c, "RGFW_window_createContext_EGL")) return Error.MissingDeclaration;
+    pub fn createContext(win: *Window, hints: ?*GlHints) ?*EglContext {
         const ctx = c.RGFW_window_createContext_EGL(cWindow(win), if (hints) |h| ptrCast(*c.RGFW_glHints, h) else null);
         return zigEglContext(ctx);
     }
 
     /// Create an EGL context using a pre-allocated `EglContext` structure.
-    pub fn createContextPtr(win: *Window, ctx: *EglContext, hints: ?*GlHints) Error!bool {
-        if (!@hasDecl(c, "RGFW_window_createContextPtr_EGL")) return Error.MissingDeclaration;
+    pub fn createContextPtr(win: *Window, ctx: *EglContext, hints: ?*GlHints) bool {
         return boolFromC(c.RGFW_window_createContextPtr_EGL(cWindow(win), cEglContext(ctx), if (hints) |h| ptrCast(*c.RGFW_glHints, h) else null));
     }
 
     /// Delete and free an EGL context.
-    pub fn deleteContext(win: *Window, ctx: *EglContext) Error!void {
-        if (!@hasDecl(c, "RGFW_window_deleteContext_EGL")) return Error.MissingDeclaration;
+    pub fn deleteContext(win: *Window, ctx: *EglContext) void {
         c.RGFW_window_deleteContext_EGL(cWindow(win), cEglContext(ctx));
     }
 
     /// Delete an EGL context without freeing its memory.
-    pub fn deleteContextPtr(win: *Window, ctx: *EglContext) Error!void {
-        if (!@hasDecl(c, "RGFW_window_deleteContextPtr_EGL")) return Error.MissingDeclaration;
+    pub fn deleteContextPtr(win: *Window, ctx: *EglContext) void {
         c.RGFW_window_deleteContextPtr_EGL(cWindow(win), cEglContext(ctx));
     }
 
     /// Get the EGL context associated with a window.
-    pub fn getContext(win: *Window) Error!?*EglContext {
-        if (!@hasDecl(c, "RGFW_window_getContext_EGL")) return Error.MissingDeclaration;
+    pub fn getContext(win: *Window) ?*EglContext {
         return zigEglContext(c.RGFW_window_getContext_EGL(cWindow(win)));
     }
 
     /// Get the EGL display handle.
-    pub fn getDisplay() Error!?*anyopaque {
-        if (!@hasDecl(c, "RGFW_getDisplay_EGL")) return Error.MissingDeclaration;
+    pub fn getDisplay() ?*anyopaque {
         return c.RGFW_getDisplay_EGL();
     }
 
     /// Get the underlying native EGL context handle.
-    pub fn contextGetSourceContext(ctx: *EglContext) Error!?*anyopaque {
-        if (!@hasDecl(c, "RGFW_eglContext_getSourceContext")) return Error.MissingDeclaration;
+    pub fn contextGetSourceContext(ctx: *EglContext) ?*anyopaque {
         return c.RGFW_eglContext_getSourceContext(cEglContext(ctx));
     }
 
     /// Get the EGL surface associated with a context.
-    pub fn contextGetSurface(ctx: *EglContext) Error!?*anyopaque {
-        if (!@hasDecl(c, "RGFW_eglContext_getSurface")) return Error.MissingDeclaration;
+    pub fn contextGetSurface(ctx: *EglContext) ?*anyopaque {
         return c.RGFW_eglContext_getSurface(cEglContext(ctx));
     }
 
     /// Get the Wayland EGL window handle (Wayland only).
-    pub fn contextWlEglWindow(ctx: *EglContext) Error!?*WlEglWindow {
-        if (!@hasDecl(c, "RGFW_eglContext_wlEGLWindow")) return Error.MissingDeclaration;
+    pub fn contextWlEglWindow(ctx: *EglContext) ?*WlEglWindow {
         const win = c.RGFW_eglContext_wlEGLWindow(cEglContext(ctx));
         return if (win == null) null else ptrCast(*WlEglWindow, win);
     }
 
     /// Swap the EGL buffers for a window.
-    pub fn swapBuffers(win: *Window) Error!void {
-        if (!@hasDecl(c, "RGFW_window_swapBuffers_EGL")) return Error.MissingDeclaration;
+    pub fn swapBuffers(win: *Window) void {
         c.RGFW_window_swapBuffers_EGL(cWindow(win));
     }
 
     /// Make the window the current EGL rendering target.
-    pub fn makeCurrentWindow(win: *Window) Error!void {
-        if (!@hasDecl(c, "RGFW_window_makeCurrentWindow_EGL")) return Error.MissingDeclaration;
+    pub fn makeCurrentWindow(win: *Window) void {
         c.RGFW_window_makeCurrentWindow_EGL(cWindow(win));
     }
 
     /// Make the window's EGL context current (or null to detach).
-    pub fn makeCurrentContext(win: ?*Window) Error!void {
-        if (!@hasDecl(c, "RGFW_window_makeCurrentContext_EGL")) return Error.MissingDeclaration;
+    pub fn makeCurrentContext(win: ?*Window) void {
         c.RGFW_window_makeCurrentContext_EGL(if (win) |w| cWindow(w) else null);
     }
 
     /// Get the currently active EGL context handle.
-    pub fn getCurrentContext() Error!?*anyopaque {
-        if (!@hasDecl(c, "RGFW_getCurrentContext_EGL")) return Error.MissingDeclaration;
+    pub fn getCurrentContext() ?*anyopaque {
         return c.RGFW_getCurrentContext_EGL();
     }
 
     /// Get the window that owns the currently active EGL context.
-    pub fn getCurrentWindow() Error!?*Window {
-        if (!@hasDecl(c, "RGFW_getCurrentWindow_EGL")) return Error.MissingDeclaration;
+    pub fn getCurrentWindow() ?*Window {
         return zigWindow(c.RGFW_getCurrentWindow_EGL());
     }
 
     /// Set the EGL swap interval (VSync). 0 = off, 1 = on.
-    pub fn swapInterval(win: *Window, interval: i32) Error!void {
-        if (!@hasDecl(c, "RGFW_window_swapInterval_EGL")) return Error.MissingDeclaration;
+    pub fn swapInterval(win: *Window, interval: i32) void {
         c.RGFW_window_swapInterval_EGL(cWindow(win), interval);
     }
 
     /// Get a native OpenGL/ES function pointer via EGL.
-    pub fn getProcAddress(procname: [:0]const u8) Error!Proc {
-        if (!@hasDecl(c, "RGFW_getProcAddress_EGL")) return Error.MissingDeclaration;
+    pub fn getProcAddress(procname: [:0]const u8) Proc {
         return c.RGFW_getProcAddress_EGL(procname.ptr);
     }
 
     /// Check if an OpenGL/ES extension is supported in the current EGL context.
-    pub fn extensionSupported(extension: []const u8) Error!bool {
-        if (!@hasDecl(c, "RGFW_extensionSupported_EGL")) return Error.MissingDeclaration;
+    pub fn extensionSupported(extension: []const u8) bool {
         return boolFromC(c.RGFW_extensionSupported_EGL(extension.ptr, extension.len));
     }
 
     /// Check if a platform-dependent EGL extension is supported.
-    pub fn extensionSupportedPlatform(extension: []const u8) Error!bool {
-        if (!@hasDecl(c, "RGFW_extensionSupportedPlatform_EGL")) return Error.MissingDeclaration;
+    pub fn extensionSupportedPlatform(extension: []const u8) bool {
         return boolFromC(c.RGFW_extensionSupportedPlatform_EGL(extension.ptr, extension.len));
     }
 };
 
 /// Vulkan instance and surface creation helpers.
+/// Requires RGFW to be compiled with `RGFW_VULKAN`.
 pub const vulkan = struct {
     /// Get a Vulkan function pointer via `vkGetInstanceProcAddr`.
-    pub fn getInstanceProcAddress(instance: ?*anyopaque, procname: [:0]const u8) Error!Proc {
-        if (!@hasDecl(c, "RGFW_getInstanceProcAddress_Vulkan")) return Error.MissingDeclaration;
+    pub fn getInstanceProcAddress(instance: ?*anyopaque, procname: [:0]const u8) Proc {
         return c.RGFW_getInstanceProcAddress_Vulkan(@ptrCast(instance), procname.ptr);
     }
 
     /// Get the list of required Vulkan instance extensions for RGFW.
     pub fn getRequiredInstanceExtensions() Error![]const [*:0]const u8 {
-        if (!@hasDecl(c, "RGFW_getRequiredInstanceExtensions_Vulkan")) return Error.MissingDeclaration;
         var count: usize = 0;
         const extensions = c.RGFW_getRequiredInstanceExtensions_Vulkan(&count);
         if (extensions == null) return Error.NullPointer;
@@ -2509,23 +2457,21 @@ pub const vulkan = struct {
     }
 
     /// Create a Vulkan surface for a window.
-    pub fn createSurface(win: *Window, instance: ?*anyopaque, surface_ptr: *anyopaque) Error!i32 {
-        if (!@hasDecl(c, "RGFW_window_createSurface_Vulkan")) return Error.MissingDeclaration;
+    pub fn createSurface(win: *Window, instance: ?*anyopaque, surface_ptr: *anyopaque) i32 {
         return @intFromEnum(c.RGFW_window_createSurface_Vulkan(cWindow(win), @ptrCast(instance), @ptrCast(surface_ptr)));
     }
 
     /// Check if a Vulkan physical device and queue family support window presentation.
-    pub fn getPhysicalDevicePresentationSupport(instance: ?*anyopaque, physical_device: ?*anyopaque, queue_family_index: u32) Error!bool {
-        if (!@hasDecl(c, "RGFW_getPhysicalDevicePresentationSupport_Vulkan")) return Error.MissingDeclaration;
+    pub fn getPhysicalDevicePresentationSupport(instance: ?*anyopaque, physical_device: ?*anyopaque, queue_family_index: u32) bool {
         return boolFromC(c.RGFW_getPhysicalDevicePresentationSupport_Vulkan(@ptrCast(instance), @ptrCast(physical_device), @intCast(queue_family_index)));
     }
 };
 
 /// DirectX swap chain creation (Windows only).
+/// Requires RGFW to be compiled with `RGFW_DIRECTX`.
 pub const directx = struct {
     /// Create a DirectX swap chain for the given window.
-    pub fn createSwapChain(win: *Window, factory: *DxgiFactory, device: *Unknown, swapchain: **DxgiSwapChain) Error!i32 {
-        if (!@hasDecl(c, "RGFW_window_createSwapChain_DirectX")) return Error.MissingDeclaration;
+    pub fn createSwapChain(win: *Window, factory: *DxgiFactory, device: *Unknown, swapchain: **DxgiSwapChain) i32 {
         return @intCast(c.RGFW_window_createSwapChain_DirectX(
             cWindow(win),
             @ptrCast(factory),
@@ -2536,10 +2482,10 @@ pub const directx = struct {
 };
 
 /// WebGPU surface creation helpers.
+/// Requires RGFW to be compiled with `RGFW_WEBGPU`.
 pub const webgpu = struct {
     /// Create a WebGPU surface for the given window.
-    pub fn createSurface(win: *Window, instance: *anyopaque) Error!?*anyopaque {
-        if (!@hasDecl(c, "RGFW_window_createSurface_WebGPU")) return Error.MissingDeclaration;
+    pub fn createSurface(win: *Window, instance: *anyopaque) ?*anyopaque {
         return c.RGFW_window_createSurface_WebGPU(cWindow(win), @ptrCast(instance));
     }
 };
@@ -2548,110 +2494,92 @@ pub const webgpu = struct {
 /// These are exposed for advanced use cases and custom platform integration.
 pub const platform = struct {
     /// Create a window using the platform backend directly (low-level).
-    pub fn createWindow(name: [:0]const u8, flags: WindowFlags, win: *Window) Error!?*Window {
-        if (!@hasDecl(c, "RGFW_createWindowPlatform")) return Error.MissingDeclaration;
+    pub fn createWindow(name: [:0]const u8, flags: WindowFlags, win: *Window) ?*Window {
         return zigWindow(c.RGFW_createWindowPlatform(name.ptr, @as(u32, @bitCast(flags)), cWindow(win)));
     }
 
     /// Close a window using the platform backend directly (low-level).
-    pub fn closeWindow(win: *Window) Error!void {
-        if (!@hasDecl(c, "RGFW_window_closePlatform")) return Error.MissingDeclaration;
+    pub fn closeWindow(win: *Window) void {
         c.RGFW_window_closePlatform(cWindow(win));
     }
 
     /// Set the mouse cursor for a window using the platform backend (low-level).
-    pub fn setMouse(win: *Window, mouse_ptr: *Mouse) Error!bool {
-        if (!@hasDecl(c, "RGFW_window_setMousePlatform")) return Error.MissingDeclaration;
+    pub fn setMouse(win: *Window, mouse_ptr: *Mouse) bool {
         return boolFromC(c.RGFW_window_setMousePlatform(cWindow(win), cMouse(mouse_ptr)));
     }
 
     /// Set window flags via the internal setFlags path (low-level).
-    pub fn setFlagsInternal(win: *Window, flags: WindowFlags, cmp_flags: WindowFlags) Error!void {
-        if (!@hasDecl(c, "RGFW_window_setFlagsInternal")) return Error.MissingDeclaration;
+    pub fn setFlagsInternal(win: *Window, flags: WindowFlags, cmp_flags: WindowFlags) void {
         c.RGFW_window_setFlagsInternal(cWindow(win), @as(u32, @bitCast(flags)), @intCast(cmp_flags));
     }
 
     /// Initialize the X11 platform backend directly.
-    pub fn initX11(class_name: ?[:0]const u8, flags: InitFlags) Error!i32 {
-        if (!@hasDecl(c, "RGFW_initPlatform_X11")) return Error.MissingDeclaration;
+    pub fn initX11(class_name: ?[:0]const u8, flags: InitFlags) i32 {
         return @intCast(c.RGFW_initPlatform_X11(optionalCString(class_name), @as(u8, @bitCast(flags))));
     }
 
     /// Deinitialize the X11 platform backend.
-    pub fn deinitX11() Error!void {
-        if (!@hasDecl(c, "RGFW_deinitPlatform_X11")) return Error.MissingDeclaration;
+    pub fn deinitX11() void {
         c.RGFW_deinitPlatform_X11();
     }
 
     /// Initialize the Wayland platform backend directly.
-    pub fn initWayland(class_name: ?[:0]const u8, flags: InitFlags) Error!i32 {
-        if (!@hasDecl(c, "RGFW_initPlatform_Wayland")) return Error.MissingDeclaration;
+    pub fn initWayland(class_name: ?[:0]const u8, flags: InitFlags) i32 {
         return @intCast(c.RGFW_initPlatform_Wayland(optionalCString(class_name), @as(u8, @bitCast(flags))));
     }
 
     /// Deinitialize the Wayland platform backend.
-    pub fn deinitWayland() Error!void {
-        if (!@hasDecl(c, "RGFW_deinitPlatform_Wayland")) return Error.MissingDeclaration;
+    pub fn deinitWayland() void {
         c.RGFW_deinitPlatform_Wayland();
     }
 
     /// Load the X11 shared library functions.
-    pub fn loadX11() Error!void {
-        if (!@hasDecl(c, "RGFW_load_X11")) return Error.MissingDeclaration;
+    pub fn loadX11() void {
         c.RGFW_load_X11();
     }
 
     /// Load the Wayland shared library functions.
-    pub fn loadWayland() Error!void {
-        if (!@hasDecl(c, "RGFW_load_Wayland")) return Error.MissingDeclaration;
+    pub fn loadWayland() void {
         c.RGFW_load_Wayland();
     }
 
     /// Get the current time in nanoseconds (Unix only).
-    pub fn unixGetTimeNs() Error!u64 {
-        if (!@hasDecl(c, "RGFW_unix_getTimeNS")) return Error.MissingDeclaration;
+    pub fn unixGetTimeNs() u64 {
         return @intCast(c.RGFW_unix_getTimeNS());
     }
 
     /// Get the length of a C string (Unix helper).
-    pub fn unixStringLen(name: [:0]const u8) Error!usize {
-        if (!@hasDecl(c, "RGFW_unix_stringlen")) return Error.MissingDeclaration;
+    pub fn unixStringLen(name: [:0]const u8) usize {
         return c.RGFW_unix_stringlen(name.ptr);
     }
 
     /// Wait for the X11 window to be shown/mapped (X11 only).
-    pub fn waitForShowEventX11(win: *Window) Error!bool {
-        if (!@hasDecl(c, "RGFW_waitForShowEvent_X11")) return Error.MissingDeclaration;
+    pub fn waitForShowEventX11(win: *Window) bool {
         return boolFromC(c.RGFW_waitForShowEvent_X11(cWindow(win)));
     }
 
     /// Get the dark mode state from the Windows registry (Windows only).
-    pub fn win32GetDarkModeState() Error!bool {
-        if (!@hasDecl(c, "RGFW_win32_getDarkModeState")) return Error.MissingDeclaration;
+    pub fn win32GetDarkModeState() bool {
         return boolFromC(c.RGFW_win32_getDarkModeState());
     }
 
     /// Apply or remove dark mode for a window (Windows only, requires DWM).
-    pub fn win32MakeWindowDarkMode(win: *Window, state: bool) Error!void {
-        if (!@hasDecl(c, "RGFW_win32_makeWindowDarkMode")) return Error.MissingDeclaration;
+    pub fn win32MakeWindowDarkMode(win: *Window, state: bool) void {
         c.RGFW_win32_makeWindowDarkMode(cWindow(win), boolToC(state));
     }
 
     /// Extract monitor mode info from a Win32 DEVMODE (Windows only).
-    pub fn win32GetMode(dev_mode: *anyopaque, mode: *MonitorMode) Error!void {
-        if (!@hasDecl(c, "RGFW_win32_getMode")) return Error.MissingDeclaration;
+    pub fn win32GetMode(dev_mode: *anyopaque, mode: *MonitorMode) void {
         c.RGFW_win32_getMode(@ptrCast(dev_mode), cMonitorMode(mode));
     }
 
     /// Create a monitor from Win32 adapter and display device names (Windows only).
-    pub fn win32CreateMonitor(adapter: *anyopaque, display_device: *anyopaque) Error!void {
-        if (!@hasDecl(c, "RGFW_win32_createMonitor")) return Error.MissingDeclaration;
+    pub fn win32CreateMonitor(adapter: *anyopaque, display_device: *anyopaque) void {
         c.RGFW_win32_createMonitor(@ptrCast(adapter), @ptrCast(display_device));
     }
 
     /// Transform a Y coordinate between Cocoa and RGFW conventions (macOS only).
-    pub fn cocoaYTransform(y: f32) Error!f32 {
-        if (!@hasDecl(c, "RGFW_cocoaYTransform")) return Error.MissingDeclaration;
+    pub fn cocoaYTransform(y: f32) f32 {
         return c.RGFW_cocoaYTransform(y);
     }
 };
@@ -2660,152 +2588,127 @@ pub const platform = struct {
 /// Exposed for advanced users who need to replicate or extend internal behavior.
 pub const internals = struct {
     /// Initialize an attribute stack for OpenGL context creation.
-    pub fn attribStackInit(stack: *anyopaque, attribs: []i32) Error!void {
-        if (!@hasDecl(c, "RGFW_attribStack_init")) return Error.MissingDeclaration;
+    pub fn attribStackInit(stack: *anyopaque, attribs: []i32) void {
         c.RGFW_attribStack_init(@ptrCast(stack), attribs.ptr, attribs.len);
     }
 
     /// Push a single attribute onto the attribute stack.
-    pub fn attribStackPushAttrib(stack: *anyopaque, attrib: i32) Error!void {
-        if (!@hasDecl(c, "RGFW_attribStack_pushAttrib")) return Error.MissingDeclaration;
+    pub fn attribStackPushAttrib(stack: *anyopaque, attrib: i32) void {
         c.RGFW_attribStack_pushAttrib(@ptrCast(stack), attrib);
     }
 
     /// Push a key-value attribute pair onto the attribute stack.
-    pub fn attribStackPushAttribs(stack: *anyopaque, attrib1: i32, attrib2: i32) Error!void {
-        if (!@hasDecl(c, "RGFW_attribStack_pushAttribs")) return Error.MissingDeclaration;
+    pub fn attribStackPushAttribs(stack: *anyopaque, attrib1: i32, attrib2: i32) void {
         c.RGFW_attribStack_pushAttribs(@ptrCast(stack), attrib1, attrib2);
     }
 
     /// Initialize the keycode translation tables.
-    pub fn initKeycodes() Error!void {
-        if (!@hasDecl(c, "RGFW_initKeycodes")) return Error.MissingDeclaration;
+    pub fn initKeycodes() void {
         c.RGFW_initKeycodes();
     }
 
     /// Initialize the platform-specific keycode mappings.
-    pub fn initKeycodesPlatform() Error!void {
-        if (!@hasDecl(c, "RGFW_initKeycodesPlatform")) return Error.MissingDeclaration;
+    pub fn initKeycodesPlatform() void {
         c.RGFW_initKeycodesPlatform();
     }
 
     /// Reset the per-frame input previous-state tracking.
-    pub fn resetPrevState() Error!void {
-        if (!@hasDecl(c, "RGFW_resetPrevState")) return Error.MissingDeclaration;
+    pub fn resetPrevState() void {
         c.RGFW_resetPrevState();
     }
 
     /// Reset all key states to zero.
-    pub fn resetKey() Error!void {
-        if (!@hasDecl(c, "RGFW_resetKey")) return Error.MissingDeclaration;
+    pub fn resetKey() void {
         c.RGFW_resetKey();
     }
 
     /// Update a single key modifier state.
-    pub fn keyUpdateKeyMod(win: *Window, mod: KeyMod, value: bool) Error!void {
-        if (!@hasDecl(c, "RGFW_keyUpdateKeyMod")) return Error.MissingDeclaration;
+    pub fn keyUpdateKeyMod(win: *Window, mod: KeyMod, value: bool) void {
         c.RGFW_keyUpdateKeyMod(cWindow(win), @intCast(mod), boolToC(value));
     }
 
     /// Update common key modifier states (CapsLock, NumLock, ScrollLock).
-    pub fn keyUpdateKeyMods(win: *Window, capital: bool, numlock: bool, scroll: bool) Error!void {
-        if (!@hasDecl(c, "RGFW_keyUpdateKeyMods")) return Error.MissingDeclaration;
+    pub fn keyUpdateKeyMods(win: *Window, capital: bool, numlock: bool, scroll: bool) void {
         c.RGFW_keyUpdateKeyMods(cWindow(win), boolToC(capital), boolToC(numlock), boolToC(scroll));
     }
 
     /// Update all key modifier states explicitly.
-    pub fn keyUpdateKeyModsEx(win: *Window, capital: bool, numlock: bool, control: bool, alt: bool, shift: bool, super: bool, scroll: bool) Error!void {
-        if (!@hasDecl(c, "RGFW_keyUpdateKeyModsEx")) return Error.MissingDeclaration;
+    pub fn keyUpdateKeyModsEx(win: *Window, capital: bool, numlock: bool, control: bool, alt: bool, shift: bool, super: bool, scroll: bool) void {
         c.RGFW_keyUpdateKeyModsEx(cWindow(win), boolToC(capital), boolToC(numlock), boolToC(control), boolToC(alt), boolToC(shift), boolToC(super), boolToC(scroll));
     }
 
     /// Load the native OpenGL library.
-    pub fn loadGl() Error!bool {
-        if (!@hasDecl(c, "RGFW_loadGL")) return Error.MissingDeclaration;
+    pub fn loadGl() bool {
         return boolFromC(c.RGFW_loadGL());
     }
 
     /// Unload the native OpenGL library.
-    pub fn unloadGl() Error!void {
-        if (!@hasDecl(c, "RGFW_unloadGL")) return Error.MissingDeclaration;
+    pub fn unloadGl() void {
         c.RGFW_unloadGL();
     }
 
     /// Load the EGL library.
-    pub fn loadEgl() Error!bool {
-        if (!@hasDecl(c, "RGFW_loadEGL")) return Error.MissingDeclaration;
+    pub fn loadEgl() bool {
         return boolFromC(c.RGFW_loadEGL());
     }
 
     /// Unload the EGL library.
-    pub fn unloadEgl() Error!void {
-        if (!@hasDecl(c, "RGFW_unloadEGL")) return Error.MissingDeclaration;
+    pub fn unloadEgl() void {
         c.RGFW_unloadEGL();
     }
 
     /// Load the Vulkan library.
-    pub fn loadVulkan() Error!bool {
-        if (!@hasDecl(c, "RGFW_loadVulkan")) return Error.MissingDeclaration;
+    pub fn loadVulkan() bool {
         return boolFromC(c.RGFW_loadVulkan());
     }
 
     /// Unload the Vulkan library.
-    pub fn unloadVulkan() Error!void {
-        if (!@hasDecl(c, "RGFW_unloadVulkan")) return Error.MissingDeclaration;
+    pub fn unloadVulkan() void {
         c.RGFW_unloadVulkan();
     }
 
     /// Refresh the monitor list by removing disconnected monitors.
-    pub fn monitorsRefresh() Error!void {
-        if (!@hasDecl(c, "RGFW_monitors_refresh")) return Error.MissingDeclaration;
+    pub fn monitorsRefresh() void {
         c.RGFW_monitors_refresh();
     }
 
     /// Add a monitor to the internal monitor list.
-    pub fn monitorsAdd(mon: *const Monitor) Error!?*MonitorNode {
-        if (!@hasDecl(c, "RGFW_monitors_add")) return Error.MissingDeclaration;
+    pub fn monitorsAdd(mon: *const Monitor) ?*MonitorNode {
         return zigMonitorNode(c.RGFW_monitors_add(ptrCast(*const c.RGFW_monitor, mon)));
     }
 
     /// Remove a monitor node from the internal monitor list.
-    pub fn monitorsRemove(node: *MonitorNode, prev: *MonitorNode) Error!void {
-        if (!@hasDecl(c, "RGFW_monitors_remove")) return Error.MissingDeclaration;
+    pub fn monitorsRemove(node: *MonitorNode, prev: *MonitorNode) void {
         c.RGFW_monitors_remove(cMonitorNode(node), cMonitorNode(prev));
     }
 
     /// Free a monitor node's internal data.
-    pub fn monitorNodeFree(node: *MonitorNode) Error!void {
-        if (!@hasDecl(c, "RGFW_monitorNode_free")) return Error.MissingDeclaration;
+    pub fn monitorNodeFree(node: *MonitorNode) void {
         c.RGFW_monitorNode_free(cMonitorNode(node));
     }
 
     /// Set or clear a bit in a u32 value.
-    pub fn setBit(value: *u32, mask: u32, set: bool) Error!void {
-        if (!@hasDecl(c, "RGFW_setBit")) return Error.MissingDeclaration;
+    pub fn setBit(value: *u32, mask: u32, set: bool) void {
         c.RGFW_setBit(value, mask, boolToC(set));
     }
 
     /// Split a BPP (bits-per-pixel) value into RGB channel bit depths.
-    pub fn splitBpp(bpp: u32, mode: *MonitorMode) Error!void {
-        if (!@hasDecl(c, "RGFW_splitBPP")) return Error.MissingDeclaration;
+    pub fn splitBpp(bpp: u32, mode: *MonitorMode) void {
         c.RGFW_splitBPP(bpp, cMonitorMode(mode));
     }
 
     /// Update the window mouse flags (show/hide state).
-    pub fn windowShowMouseFlags(win: *Window, visible: bool) Error!void {
-        if (!@hasDecl(c, "RGFW_window_showMouseFlags")) return Error.MissingDeclaration;
+    pub fn windowShowMouseFlags(win: *Window, visible: bool) void {
         c.RGFW_window_showMouseFlags(cWindow(win), boolToC(visible));
     }
 
     /// Platform-specific mouse capture implementation.
-    pub fn windowCaptureMousePlatform(win: *Window, state: bool) Error!void {
-        if (!@hasDecl(c, "RGFW_window_captureMousePlatform")) return Error.MissingDeclaration;
+    pub fn windowCaptureMousePlatform(win: *Window, state: bool) void {
         c.RGFW_window_captureMousePlatform(cWindow(win), boolToC(state));
     }
 
     /// Platform-specific raw mouse mode implementation.
-    pub fn windowSetRawMouseModePlatform(win: *Window, state: bool) Error!void {
-        if (!@hasDecl(c, "RGFW_window_setRawMouseModePlatform")) return Error.MissingDeclaration;
+    pub fn windowSetRawMouseModePlatform(win: *Window, state: bool) void {
         c.RGFW_window_setRawMouseModePlatform(cWindow(win), boolToC(state));
     }
 };
@@ -2814,116 +2717,97 @@ pub const internals = struct {
 /// backends when events occur and in turn push events to the queue and call user callbacks.
 pub const callbacks = struct {
     /// Called when the window is maximized.
-    pub fn windowMaximized(win: *Window, rect: Rect) Error!void {
-        if (!@hasDecl(c, "RGFW_windowMaximizedCallback")) return Error.MissingDeclaration;
+    pub fn windowMaximized(win: *Window, rect: Rect) void {
         c.RGFW_windowMaximizedCallback(cWindow(win), rect.x, rect.y, rect.w, rect.h);
     }
 
     /// Called when the window is minimized.
-    pub fn windowMinimized(win: *Window) Error!void {
-        if (!@hasDecl(c, "RGFW_windowMinimizedCallback")) return Error.MissingDeclaration;
+    pub fn windowMinimized(win: *Window) void {
         c.RGFW_windowMinimizedCallback(cWindow(win));
     }
 
     /// Called when the window is restored from minimized/maximized state.
-    pub fn windowRestored(win: *Window, rect: Rect) Error!void {
-        if (!@hasDecl(c, "RGFW_windowRestoredCallback")) return Error.MissingDeclaration;
+    pub fn windowRestored(win: *Window, rect: Rect) void {
         c.RGFW_windowRestoredCallback(cWindow(win), rect.x, rect.y, rect.w, rect.h);
     }
 
     /// Called when the window is moved.
-    pub fn windowMoved(win: *Window, pos: Position) Error!void {
-        if (!@hasDecl(c, "RGFW_windowMovedCallback")) return Error.MissingDeclaration;
+    pub fn windowMoved(win: *Window, pos: Position) void {
         c.RGFW_windowMovedCallback(cWindow(win), pos.x, pos.y);
     }
 
     /// Called when the window is resized.
-    pub fn windowResized(win: *Window, size: Size) Error!void {
-        if (!@hasDecl(c, "RGFW_windowResizedCallback")) return Error.MissingDeclaration;
+    pub fn windowResized(win: *Window, size: Size) void {
         c.RGFW_windowResizedCallback(cWindow(win), size.w, size.h);
     }
 
     /// Called when the user attempts to close the window.
-    pub fn windowClose(win: *Window) Error!void {
-        if (!@hasDecl(c, "RGFW_windowCloseCallback")) return Error.MissingDeclaration;
+    pub fn windowClose(win: *Window) void {
         c.RGFW_windowCloseCallback(cWindow(win));
     }
 
     /// Called when the mouse moves within the window.
-    pub fn mouseMotion(win: *Window, pos: Position) Error!void {
-        if (!@hasDecl(c, "RGFW_mouseMotionCallback")) return Error.MissingDeclaration;
+    pub fn mouseMotion(win: *Window, pos: Position) void {
         c.RGFW_mouseMotionCallback(cWindow(win), pos.x, pos.y);
     }
 
     /// Called when raw (unaccelerated) mouse motion is detected.
-    pub fn rawMotion(win: *Window, vector: MouseVector) Error!void {
-        if (!@hasDecl(c, "RGFW_rawMotionCallback")) return Error.MissingDeclaration;
+    pub fn rawMotion(win: *Window, vector: MouseVector) void {
         c.RGFW_rawMotionCallback(cWindow(win), vector.x, vector.y);
     }
 
     /// Called when the window content needs to be redrawn.
-    pub fn windowRefresh(win: *Window, rect: Rect) Error!void {
-        if (!@hasDecl(c, "RGFW_windowRefreshCallback")) return Error.MissingDeclaration;
+    pub fn windowRefresh(win: *Window, rect: Rect) void {
         c.RGFW_windowRefreshCallback(cWindow(win), rect.x, rect.y, rect.w, rect.h);
     }
 
     /// Called when the window gains or loses focus.
-    pub fn windowFocus(win: *Window, in_focus: bool) Error!void {
-        if (!@hasDecl(c, "RGFW_windowFocusCallback")) return Error.MissingDeclaration;
+    pub fn windowFocus(win: *Window, in_focus: bool) void {
         c.RGFW_windowFocusCallback(cWindow(win), boolToC(in_focus));
     }
 
     /// Called when the mouse enters or leaves the window.
-    pub fn mouseNotify(win: *Window, pos: Position, status: bool) Error!void {
-        if (!@hasDecl(c, "RGFW_mouseNotifyCallback")) return Error.MissingDeclaration;
+    pub fn mouseNotify(win: *Window, pos: Position, status: bool) void {
         c.RGFW_mouseNotifyCallback(cWindow(win), pos.x, pos.y, boolToC(status));
     }
 
     /// Called when data is dropped onto the window.
-    pub fn dataDrop(win: *Window, data: [:0]const u8, data_type: DataTransferType) Error!void {
-        if (!@hasDecl(c, "RGFW_dataDropCallback")) return Error.MissingDeclaration;
+    pub fn dataDrop(win: *Window, data: [:0]const u8, data_type: DataTransferType) void {
         c.RGFW_dataDropCallback(cWindow(win), data.ptr, data.len, @intCast(data_type));
     }
 
     /// Called during a drag-and-drop operation over the window.
-    pub fn dataDrag(win: *Window, data_type: DataTransferType, action: DndActionType, pos: Position) Error!void {
-        if (!@hasDecl(c, "RGFW_dataDragCallback")) return Error.MissingDeclaration;
+    pub fn dataDrag(win: *Window, data_type: DataTransferType, action: DndActionType, pos: Position) void {
         c.RGFW_dataDragCallback(cWindow(win), @intCast(data_type), @intCast(action), pos.x, pos.y);
     }
 
     /// Called when a UTF-8 character is typed.
-    pub fn keyChar(win: *Window, codepoint: u32) Error!void {
-        if (!@hasDecl(c, "RGFW_keyCharCallback")) return Error.MissingDeclaration;
+    pub fn keyChar(win: *Window, codepoint: u32) void {
         c.RGFW_keyCharCallback(cWindow(win), codepoint);
     }
 
     /// Called when a key is pressed or released.
-    pub fn keyEvent(win: *Window, key_code: Key, mod: KeyMod, repeat: bool, press: bool) Error!void {
-        if (!@hasDecl(c, "RGFW_keyCallback")) return Error.MissingDeclaration;
+    pub fn keyEvent(win: *Window, key_code: Key, mod: KeyMod, repeat: bool, press: bool) void {
         c.RGFW_keyCallback(cWindow(win), @intFromEnum(key_code), @intCast(mod), boolToC(repeat), boolToC(press));
     }
 
     /// Called when a mouse button is pressed or released.
-    pub fn mouseButton(win: *Window, button: MouseButton, press: bool) Error!void {
-        if (!@hasDecl(c, "RGFW_mouseButtonCallback")) return Error.MissingDeclaration;
+    pub fn mouseButton(win: *Window, button: MouseButton, press: bool) void {
         c.RGFW_mouseButtonCallback(cWindow(win), @intFromEnum(button), boolToC(press));
     }
 
     /// Called when the mouse scroll wheel is used.
-    pub fn mouseScroll(win: *Window, vector: MouseVector) Error!void {
-        if (!@hasDecl(c, "RGFW_mouseScrollCallback")) return Error.MissingDeclaration;
+    pub fn mouseScroll(win: *Window, vector: MouseVector) void {
         c.RGFW_mouseScrollCallback(cWindow(win), vector.x, vector.y);
     }
 
     /// Called when the content scale (DPI) of the window changes.
-    pub fn scaleUpdated(win: *Window, scale: Scale) Error!void {
-        if (!@hasDecl(c, "RGFW_scaleUpdatedCallback")) return Error.MissingDeclaration;
+    pub fn scaleUpdated(win: *Window, scale: Scale) void {
         c.RGFW_scaleUpdatedCallback(cWindow(win), scale.x, scale.y);
     }
 
     /// Called when a monitor is connected or disconnected.
-    pub fn monitor(win: *Window, mon: *const Monitor, connected: bool) Error!void {
-        if (!@hasDecl(c, "RGFW_monitorCallback")) return Error.MissingDeclaration;
+    pub fn monitor(win: *Window, mon: *const Monitor, connected: bool) void {
         c.RGFW_monitorCallback(cWindow(win), ptrCast(*const c.RGFW_monitor, mon), boolToC(connected));
     }
 };
@@ -2931,94 +2815,79 @@ pub const callbacks = struct {
 /// Native platform internals (OS-specific helpers for advanced use).
 pub const native = struct {
     /// Initialize the macOS NSView for a window (macOS only).
-    pub fn osxInitView(win: *Window) Error!void {
-        if (!@hasDecl(c, "RGFW_osx_initView")) return Error.MissingDeclaration;
+    pub fn osxInitView(win: *Window) void {
         c.RGFW_osx_initView(cWindow(win));
     }
 
     /// Get the NSScreen for a given CGDirectDisplayID (macOS only).
-    pub fn getNSScreenForDisplayUInt(display_id: u32) Error!?*anyopaque {
-        if (!@hasDecl(c, "RGFW_getNSScreenForDisplayUInt")) return Error.MissingDeclaration;
+    pub fn getNSScreenForDisplayUInt(display_id: u32) ?*anyopaque {
         return c.RGFW_getNSScreenForDisplayUInt(display_id);
     }
 
     /// Parse a dropped URI list into file paths and call the data drop callback (Unix only).
-    pub fn unixParseUri(win: *Window, data: [:0]u8) Error!void {
-        if (!@hasDecl(c, "RGFW_unix_parseURI")) return Error.MissingDeclaration;
+    pub fn unixParseUri(win: *Window, data: [:0]u8) void {
         c.RGFW_unix_parseURI(cWindow(win), data.ptr);
     }
 
     /// Get the Win32 window style flags for the given RGFW flags (Windows only).
-    pub fn winapiWindowGetStyle(win: *Window, flags: WindowFlags) Error!u32 {
-        if (!@hasDecl(c, "RGFW_winapi_window_getStyle")) return Error.MissingDeclaration;
+    pub fn winapiWindowGetStyle(win: *Window, flags: WindowFlags) u32 {
         return @intCast(c.RGFW_winapi_window_getStyle(cWindow(win), @as(u32, @bitCast(flags))));
     }
 
     /// Get the Win32 extended window style flags (Windows only).
-    pub fn winapiWindowGetExStyle(win: *Window, flags: WindowFlags) Error!u32 {
-        if (!@hasDecl(c, "RGFW_winapi_window_getExStyle")) return Error.MissingDeclaration;
+    pub fn winapiWindowGetExStyle(win: *Window, flags: WindowFlags) u32 {
         return @intCast(c.RGFW_winapi_window_getExStyle(cWindow(win), @as(u32, @bitCast(flags))));
     }
 
     /// Get the system content DPI via X11 XResources (X11 only).
-    pub fn xGetSystemContentDpi() Error!f32 {
-        if (!@hasDecl(c, "RGFW_XGetSystemContentDPI")) return Error.MissingDeclaration;
+    pub fn xGetSystemContentDpi() f32 {
         var dpi: f32 = 0;
         c.RGFW_XGetSystemContentDPI(&dpi);
         return dpi;
     }
 
     /// Handle an X11 clipboard selection request event (X11 only).
-    pub fn xHandleClipboardSelection(event: *anyopaque) Error!void {
-        if (!@hasDecl(c, "RGFW_XHandleClipboardSelection")) return Error.MissingDeclaration;
+    pub fn xHandleClipboardSelection(event: *anyopaque) void {
         c.RGFW_XHandleClipboardSelection(@ptrCast(event));
     }
 
     /// Process a single X11 event from the display queue (X11 only).
-    pub fn xHandleEvent() Error!void {
-        if (!@hasDecl(c, "RGFW_XHandleEvent")) return Error.MissingDeclaration;
+    pub fn xHandleEvent() void {
         c.RGFW_XHandleEvent();
     }
 
     /// Determine the RGFW pixel format from an X11 XImage (X11 only).
-    pub fn xImageGetFormat(image: *anyopaque) Error!Format {
-        if (!@hasDecl(c, "RGFW_XImage_getFormat")) return Error.MissingDeclaration;
+    pub fn xImageGetFormat(image: *anyopaque) Format {
         return @intCast(c.RGFW_XImage_getFormat(@ptrCast(image)));
     }
 
     /// Custom X11 error handler (X11 only).
-    pub fn xErrorHandler(display: *anyopaque, event: *anyopaque) Error!i32 {
-        if (!@hasDecl(c, "RGFW_XErrorHandler")) return Error.MissingDeclaration;
+    pub fn xErrorHandler(display: *anyopaque, event: *anyopaque) i32 {
         return @intCast(c.RGFW_XErrorHandler(@ptrCast(display), @ptrCast(event)));
     }
 
     /// X11 input method context destruction callback (X11 only).
-    pub fn x11IcCallback(ic: *anyopaque, client_data: [*:0]u8, call_data: [*:0]u8) Error!void {
-        if (!@hasDecl(c, "RGFW_x11_icCallback")) return Error.MissingDeclaration;
+    pub fn x11IcCallback(ic: *anyopaque, client_data: [*:0]u8, call_data: [*:0]u8) void {
         c.RGFW_x11_icCallback(@ptrCast(ic), client_data, call_data);
     }
 
     /// X11 input method destruction callback (X11 only).
-    pub fn x11ImCallback(im: *anyopaque, client_data: [*:0]u8, call_data: [*:0]u8) Error!void {
-        if (!@hasDecl(c, "RGFW_x11_imCallback")) return Error.MissingDeclaration;
+    pub fn x11ImCallback(im: *anyopaque, client_data: [*:0]u8, call_data: [*:0]u8) void {
         c.RGFW_x11_imCallback(@ptrCast(im), client_data, call_data);
     }
 
     /// X11 input method instantiation callback (X11 only).
-    pub fn x11ImInitCallback(display: *anyopaque, client_data: *anyopaque, call_data: *anyopaque) Error!void {
-        if (!@hasDecl(c, "RGFW_x11_imInitCallback")) return Error.MissingDeclaration;
+    pub fn x11ImInitCallback(display: *anyopaque, client_data: *anyopaque, call_data: *anyopaque) void {
         c.RGFW_x11_imInitCallback(@ptrCast(display), @ptrCast(client_data), @ptrCast(call_data));
     }
 
     /// Get an X11 mode info structure by mode ID (X11 only).
-    pub fn xGetMode(crtc_info: *anyopaque, resources: *anyopaque, mode_id: u64, found_mode: *MonitorMode) Error!?*anyopaque {
-        if (!@hasDecl(c, "RGFW_XGetMode")) return Error.MissingDeclaration;
+    pub fn xGetMode(crtc_info: *anyopaque, resources: *anyopaque, mode_id: u64, found_mode: *MonitorMode) ?*anyopaque {
         return c.RGFW_XGetMode(@ptrCast(crtc_info), @ptrCast(resources), @intCast(mode_id), cMonitorMode(found_mode));
     }
 
     /// Get an X11 VisualInfo for window creation (X11 only).
-    pub fn windowGetVisual(visual: *anyopaque, transparent: bool) Error!void {
-        if (!@hasDecl(c, "RGFW_window_getVisual")) return Error.MissingDeclaration;
+    pub fn windowGetVisual(visual: *anyopaque, transparent: bool) void {
         c.RGFW_window_getVisual(@ptrCast(visual), boolToC(transparent));
     }
 };

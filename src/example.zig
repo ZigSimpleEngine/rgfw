@@ -36,7 +36,7 @@ pub fn main() !void {
             }
         }
 
-        try rgfw.opengl.swapBuffers(win);
+        rgfw.opengl.swapBuffers(win);
         // break;
     }
 }
