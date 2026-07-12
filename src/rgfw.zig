@@ -2,10 +2,21 @@
 //! Provides a cross-platform windowing, input, and rendering abstraction layer.
 //! RGFW supports Windows (WinAPI), macOS (Cocoa), X11, and Wayland backends.
 const std = @import("std");
-const opts = @import("rgfw_options");
+pub const opts = @import("rgfw_options");
 const c = @cImport({
     @cInclude("RGFW.h");
 });
+
+// Functions inside #ifdef RGFW_IMPLEMENTATION that are not platform-specific.
+// Declared as extern fn because @cImport does not define RGFW_IMPLEMENTATION
+// (Zig 0.16's Aro C translator cannot handle the platform-specific includes
+// such as <dlfcn.h> on Windows where __unix__ is predefined by Aro/GCC).
+extern fn RGFW_copyImageData64(dest: [*c]u8, w: i32, h: i32, dest_format: u32, src: [*c]u8, src_format: u32, is_64_bit: u8, func: c.RGFW_convertImageDataFunc) void;
+extern fn RGFW_convertImageData64(dest: [*c]u8, src: [*c]u8, src_layout: *const c.RGFW_colorLayout, dest_layout: *const c.RGFW_colorLayout, count: usize, is_64_bit: u8) void;
+extern fn RGFW_isLatin(string: [*c]const u8, length: usize) u8;
+extern fn RGFW_decodeUTF8(string: [*c]const u8, starting_index: *usize) u32;
+extern fn RGFW_extensionSupportedStr(extensions: [*c]const u8, ext: [*c]const u8, len: usize) u8;
+extern fn RGFW_extensionSupported_base(extension: [*c]const u8, len: usize, get_proc_address: *const fn ([*c]const u8) callconv(.c) c.RGFW_proc) u8;
 
 /// General error type for operations that may fail at runtime.
 pub const Error = error{
@@ -1018,13 +1029,13 @@ pub fn copyImageData(dest: []u8, size: Size, dest_format: Format, src: []u8, src
 /// 64-bit aware image data copy with format conversion.
 /// `is_64_bit` indicates whether the image data uses 64-bit pixels.
 pub fn copyImageData64(dest: []u8, size: Size, dest_format: Format, src: []u8, src_format: Format, is_64_bit: bool, func: ConvertImageDataFunc) void {
-    c.RGFW_copyImageData64(dest.ptr, size.w, size.h, @intFromEnum(dest_format), src.ptr, @intFromEnum(src_format), boolToC(is_64_bit), func);
+    RGFW_copyImageData64(dest.ptr, size.w, size.h, @intFromEnum(dest_format), src.ptr, @intFromEnum(src_format), boolToC(is_64_bit), func);
 }
 
 /// Convert raw pixel data between color layouts (e.g. RGB ↔ BGR).
 /// Uses source and destination layout descriptors. `is_64_bit` controls stride.
 pub fn convertImageData64(dest: []u8, src: []u8, src_layout: *const ColorLayout, dest_layout: *const ColorLayout, count: usize, is_64_bit: bool) void {
-    c.RGFW_convertImageData64(dest.ptr, src.ptr, ptrCast(*const c.RGFW_colorLayout, src_layout), ptrCast(*const c.RGFW_colorLayout, dest_layout), count, boolToC(is_64_bit));
+    RGFW_convertImageData64(dest.ptr, src.ptr, ptrCast(*const c.RGFW_colorLayout, src_layout), ptrCast(*const c.RGFW_colorLayout, dest_layout), count, boolToC(is_64_bit));
 }
 
 /// Returns the size in bytes of the `NativeImage` structure.
@@ -1179,24 +1190,24 @@ pub fn physicalToMappedKey(keycode: Key) Key {
 
 /// Check if a string contains any non-ASCII characters (>= 0x80).
 pub fn isLatin(text: []const u8) bool {
-    return boolFromC(c.RGFW_isLatin(text.ptr, text.len));
+    return boolFromC(RGFW_isLatin(text.ptr, text.len));
 }
 
 /// Decode a single UTF-8 codepoint from `text` starting at `starting_index`.
 /// Advances `starting_index` past the decoded sequence.
 pub fn decodeUtf8(text: [:0]const u8, starting_index: *usize) u32 {
-    return @intCast(c.RGFW_decodeUTF8(text.ptr, starting_index));
+    return @intCast(RGFW_decodeUTF8(text.ptr, starting_index));
 }
 
 /// Check if a specific OpenGL extension string is present in the given extension list.
 /// Uses string matching (not the OpenGL API directly).
 pub fn extensionSupportedStr(extensions: [:0]const u8, extension: []const u8) bool {
-    return boolFromC(c.RGFW_extensionSupportedStr(extensions.ptr, extension.ptr, extension.len));
+    return boolFromC(RGFW_extensionSupportedStr(extensions.ptr, extension.ptr, extension.len));
 }
 
 /// Check if an OpenGL extension is supported using a custom procedure loader.
 pub fn extensionSupportedBase(extension: []const u8, get_proc_address: ProcLoader) bool {
-    return boolFromC(c.RGFW_extensionSupported_base(extension.ptr, extension.len, @ptrCast(get_proc_address)));
+    return boolFromC(RGFW_extensionSupported_base(extension.ptr, extension.len, @ptrCast(get_proc_address)));
 }
 
 /// Window management and query functions.

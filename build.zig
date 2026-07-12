@@ -72,7 +72,6 @@ pub fn build(b: *std.Build) void {
         .rgfw_max_events = b.option(u32, "rgfw_max_events", "Configures the maximum number of events stored in the internal RGFW event queue (defaults to 32)"),
         .rgfw_xdnd_version = b.option(u32, "rgfw_xdnd_version", "Overrides the default XDnD (Drag and Drop) protocol version (defaults to 5 on X11)"),
         .rgfw_debug = b.option(bool, "rgfw_debug", "Enables RGFW debug mode, printing debug messages and detailed errors when they occur") orelse false,
-        .rgfw_implementation = b.option(bool, "rgfw_implementation", "Makes it so the RGFW source code is included in the compilation unit") orelse false,
     };
 
     const rgfw_options = b.addOptions();
@@ -90,10 +89,18 @@ pub fn build(b: *std.Build) void {
     mod.addOptions("rgfw_options", rgfw_options);
     mod.addIncludePath(b.path("."));
     mod.addCSourceFile(.{ .file = b.path("RGFW.c") });
+    mod.linkSystemLibrary("gdi32", .{});
+    mod.linkSystemLibrary("shell32", .{});
+    mod.linkSystemLibrary("user32", .{});
+    mod.linkSystemLibrary("advapi32", .{});
 
     // Apply C macros (for RGFW.c, the single-header C library)
     if (options.rgfw_opengl) mod.addCMacro("RGFW_OPENGL", "");
-    if (options.rgfw_implementation) mod.addCMacro("RGFW_IMPLEMENTATION", "");
+    // RGFW_IMPLEMENTATION is always defined for RGFW.c (via its own #define).
+    // We do NOT define it for @cImport because the implementation section contains
+    // platform-specific includes (e.g. <dlfcn.h>) that fail on Windows.
+    // The 6 C functions that live inside #ifdef RGFW_IMPLEMENTATION are declared
+    // as extern fn in rgfw.zig directly.
     if (options.rgfw_debug) mod.addCMacro("RGFW_DEBUG", "");
     if (options.rgfw_egl) mod.addCMacro("RGFW_EGL", "");
     if (options.rgfw_directx) mod.addCMacro("RGFW_DIRECTX", "");
@@ -160,6 +167,21 @@ pub fn build(b: *std.Build) void {
     if (options.rgfw_preallocated_monitors) |val| mod.addCMacro("RGFW_PREALLOCATED_MONITORS", b.fmt("{d}", .{val}));
     if (options.rgfw_max_events) |val| mod.addCMacro("RGFW_MAX_EVENTS", b.fmt("{d}", .{val}));
     if (options.rgfw_xdnd_version) |val| mod.addCMacro("RGFW_XDND_VERSION", b.fmt("{d}", .{val}));
+
+    // Test step — reuses the rgfw module (with all C macros from above)
+    const test_mod = b.createModule(.{
+        .root_source_file = b.path("src/test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    test_mod.addImport("rgfw", mod);
+
+    const test_step = b.addTest(.{ .root_module = test_mod });
+    const test_install = b.addInstallArtifact(test_step, .{});
+    const run_tests = b.addRunArtifact(test_step);
+    const test_step_alias = b.step("test", "Run all tests");
+    test_step_alias.dependOn(&test_install.step);
+    test_step_alias.dependOn(&run_tests.step);
 
     var example_exe = b.addExecutable(.{
         .name = "example",
