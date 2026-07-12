@@ -507,14 +507,16 @@ pub const MonitorMode = extern struct {
     w: i32,
     /// Height in screen coordinates.
     h: i32,
-    /// Refresh rate in Hz (may be floored).
-    refreshRate: i32,
+    /// Refresh rate in Hz.
+    refreshRate: f32,
     /// Red channel bit depth.
     red: u8,
     /// Green channel bit depth.
     green: u8,
     /// Blue channel bit depth.
     blue: u8,
+    /// Source API mode pointer (platform-specific).
+    src: ?*anyopaque,
 };
 
 /// 2D integer position.
@@ -795,6 +797,13 @@ pub const GlHints = extern struct {
     share: ?*GlContext = null,
     shareEGL: ?*EglContext = null,
     renderer: GlRenderer = 0,
+};
+
+/// OpenGL attribute stack for context creation.
+pub const AttribStack = extern struct {
+    attribs: [*c]i32,
+    count: usize,
+    max: usize,
 };
 
 /// Generic function pointer returned by OpenGL/EGL proc-address queries.
@@ -2306,17 +2315,17 @@ pub const platform = struct {
 /// Exposed for advanced users who need to replicate or extend internal behavior.
 pub const internals = struct {
     /// Initialize an attribute stack for OpenGL context creation.
-    pub fn attribStackInit(stack: *anyopaque, attribs: []i32) void {
+    pub fn attribStackInit(stack: *AttribStack, attribs: []i32) void {
         c.RGFW_attribStack_init(@ptrCast(stack), attribs.ptr, attribs.len);
     }
 
     /// Push a single attribute onto the attribute stack.
-    pub fn attribStackPushAttrib(stack: *anyopaque, attrib: i32) void {
+    pub fn attribStackPushAttrib(stack: *AttribStack, attrib: i32) void {
         c.RGFW_attribStack_pushAttrib(@ptrCast(stack), attrib);
     }
 
     /// Push a key-value attribute pair onto the attribute stack.
-    pub fn attribStackPushAttribs(stack: *anyopaque, attrib1: i32, attrib2: i32) void {
+    pub fn attribStackPushAttribs(stack: *AttribStack, attrib1: i32, attrib2: i32) void {
         c.RGFW_attribStack_pushAttribs(@ptrCast(stack), attrib1, attrib2);
     }
 
