@@ -431,11 +431,14 @@ test "eventQueue.* functions" {
 
 test "GlHints — guarded by RGFW_OPENGL or RGFW_EGL" {
     if (!opts.rgfw_opengl and !opts.rgfw_egl) return error.SkipZigTest;
-    try std.testing.expectEqual(i32, @TypeOf(rgfw.GlHints.stencil));
-    try std.testing.expectEqual(i32, @TypeOf(rgfw.GlHints.major));
-    try std.testing.expectEqual(rgfw.GlRenderer, @TypeOf(rgfw.GlHints.renderer));
-    try std.testing.expectEqual(?*rgfw.GlContext, @TypeOf(rgfw.GlHints.share));
-    try std.testing.expectEqual(?*rgfw.EglContext, @TypeOf(rgfw.GlHints.shareEGL));
+    // NOTE: cannot access fields on extern struct TYPES directly in Zig 0.16;
+    //       we use a value instance to probe field types
+    const h: rgfw.GlHints = undefined;
+    try std.testing.expectEqual(i32, @TypeOf(h.stencil));
+    try std.testing.expectEqual(i32, @TypeOf(h.major));
+    try std.testing.expectEqual(rgfw.GlRenderer, @TypeOf(h.renderer));
+    try std.testing.expectEqual(?*rgfw.GlContext, @TypeOf(h.share));
+    try std.testing.expectEqual(?*rgfw.EglContext, @TypeOf(h.shareEGL));
 }
 
 test "GlReleaseBehavior enum — guarded by RGFW_OPENGL or RGFW_EGL" {
@@ -459,8 +462,11 @@ test "GlRenderer enum — guarded by RGFW_OPENGL or RGFW_EGL" {
 
 test "AttribStack extern struct — guarded by RGFW_OPENGL or RGFW_EGL" {
     if (!opts.rgfw_opengl and !opts.rgfw_egl) return error.SkipZigTest;
-    try std.testing.expectEqual(i32, @TypeOf(rgfw.AttribStack.attribs));
-    try std.testing.expectEqual(usize, @TypeOf(rgfw.AttribStack.count));
+    // NOTE: cannot access fields on extern struct TYPES directly in Zig 0.16;
+    //       we use a value instance to probe field types
+    const s: rgfw.AttribStack = undefined;
+    try std.testing.expectEqual([*c]i32, @TypeOf(s.attribs));
+    try std.testing.expectEqual(usize, @TypeOf(s.count));
 }
 
 test "opengl.* functions — guarded by RGFW_OPENGL" {

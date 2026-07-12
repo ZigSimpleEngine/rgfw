@@ -1,5 +1,25 @@
 const std = @import("std");
 
+fn getEnv(allocator: std.mem.Allocator, name: []const u8) ?[]u8 {
+    const environ = std.process.Environ{ .block = .{ .use_global = true } };
+    var map = std.process.Environ.createMap(environ, allocator) catch return null;
+    defer map.deinit();
+    const value = map.get(name) orelse return null;
+    return allocator.dupe(u8, value) catch return null;
+}
+
+/// Case-insensitively find a subdirectory `name` inside `dir`.
+/// Returns an owned slice (caller must free) or `null` if not found.
+fn findDirNameCaseless(allocator: std.mem.Allocator, io: std.Io, dir: std.Io.Dir, name: []const u8) !?[]u8 {
+    var iter = dir.iterate();
+    while (try iter.next(io)) |entry| {
+        if (entry.kind == .directory and std.ascii.eqlIgnoreCase(entry.name, name)) {
+            return try allocator.dupe(u8, entry.name);
+        }
+    }
+    return null;
+}
+
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
@@ -102,10 +122,109 @@ pub fn build(b: *std.Build) void {
     // The 6 C functions that live inside #ifdef RGFW_IMPLEMENTATION are declared
     // as extern fn in rgfw.zig directly.
     if (options.rgfw_debug) mod.addCMacro("RGFW_DEBUG", "");
-    if (options.rgfw_egl) mod.addCMacro("RGFW_EGL", "");
+    if (options.rgfw_egl) {
+        mod.addCMacro("RGFW_EGL", "");
+        mod.addCMacro("RGFW_OPENGL", ""); // EGL on Windows requires nativeGL_handle (defined under RGFW_OPENGL)
+        // EGL_SDK env var is required: must point to the root of an EGL implementation
+        const egl_sdk = b.option([]const u8, "egl_sdk", "Path to EGL SDK root (overrides EGL_SDK env var)") orelse
+            (getEnv(b.allocator, "EGL_SDK") orelse {
+                std.log.err(
+                    \\EGL support requires the EGL_SDK environment variable.
+                    \\
+                    \\RGFW with rgfw_egl needs EGL headers (EGL/egl.h) and libraries.
+                    \\Set EGL_SDK to the root directory of your EGL implementation
+                    \\(e.g. ANGLE, Mesa, or system EGL).
+                    \\
+                    \\This directory should contain:
+                    \\  include/EGL/   - headers (egl.h, eglext.h, eglplatform.h)
+                    \\  lib/           - EGL library (libEGL.lib, libEGL.dll.a, etc.)
+                    \\
+                    \\Example:
+                    \\  set EGL_SDK=D:\Libs\C\angle-x64   (Windows)
+                    \\  export EGL_SDK=/usr/local/angle    (Linux/macOS)
+                , .{});
+                @panic("EGL_SDK not configured");
+            });
+        // Verify the directory exists
+        const egl_dir = std.Io.Dir.openDirAbsolute(b.graph.io, egl_sdk, .{ .iterate = true }) catch |err| {
+            std.log.err("EGL_SDK path '{s}' does not exist or is not accessible: {s}", .{ egl_sdk, @errorName(err) });
+            @panic("invalid EGL_SDK path");
+        };
+        defer std.Io.Dir.close(egl_dir, b.graph.io);
+
+        // Case-insensitively find 'include' and 'lib' subdirectories
+        const include_name = (findDirNameCaseless(b.allocator, b.graph.io, egl_dir, "include") catch @panic("I/O error scanning EGL_SDK")) orelse {
+            std.log.err("EGL_SDK directory '{s}' does not contain an 'include' subdirectory", .{egl_sdk});
+            @panic("EGL SDK missing include directory");
+        };
+
+        const lib_name = (findDirNameCaseless(b.allocator, b.graph.io, egl_dir, "lib") catch @panic("I/O error scanning EGL_SDK")) orelse {
+            std.log.err("EGL_SDK directory '{s}' does not contain a 'lib' subdirectory", .{egl_sdk});
+            @panic("EGL SDK missing lib directory");
+        };
+
+        const include_path = std.fs.path.join(b.allocator, &[_][]const u8{ egl_sdk, include_name }) catch @panic("OOM");
+        const lib_path = std.fs.path.join(b.allocator, &[_][]const u8{ egl_sdk, lib_name }) catch @panic("OOM");
+
+        mod.addIncludePath(.{ .cwd_relative = include_path });
+        mod.addLibraryPath(.{ .cwd_relative = lib_path });
+        mod.linkSystemLibrary("libEGL.dll", .{});
+    }
     if (options.rgfw_directx) mod.addCMacro("RGFW_DIRECTX", "");
-    if (options.rgfw_vulkan) mod.addCMacro("RGFW_VULKAN", "");
-    if (options.rgfw_webgpu) mod.addCMacro("RGFW_WEBGPU", "");
+    if (options.rgfw_vulkan) {
+        mod.addCMacro("RGFW_VULKAN", "");
+        // Force Win32 platform in the Vulkan SDK headers (Aro on Windows predefines __unix__)
+        mod.addCMacro("VK_USE_PLATFORM_WIN32_KHR", "");
+        // VULKAN_SDK env var is required: must point to the root of a Vulkan SDK
+        const vulkan_sdk = b.option([]const u8, "vulkan_sdk", "Path to Vulkan SDK root (overrides VULKAN_SDK env var)") orelse
+            (getEnv(b.allocator, "VULKAN_SDK") orelse {
+                std.log.err(
+                    \\Vulkan support requires the VULKAN_SDK environment variable.
+                    \\
+                    \\RGFW with rgfw_vulkan needs Vulkan headers (vulkan/vulkan.h) and libraries.
+                    \\Set VULKAN_SDK to the root directory of your Vulkan SDK installation.
+                    \\
+                    \\This directory should contain:
+                    \\  Include/vulkan/   - headers (vulkan.h, vk_platform.h, etc.)
+                    \\  Lib/              - Vulkan library (vulkan-1.lib, libvulkan.so, etc.)
+                    \\
+                    \\Example:
+                    \\  set VULKAN_SDK=C:\VulkanSDK\1.3.xxx   (Windows)
+                    \\  export VULKAN_SDK=/usr/local/vulkan   (Linux/macOS)
+                , .{});
+                @panic("VULKAN_SDK not configured");
+            });
+        // Verify the directory exists
+        const vk_dir = std.Io.Dir.openDirAbsolute(b.graph.io, vulkan_sdk, .{ .iterate = true }) catch |err| {
+            std.log.err("VULKAN_SDK path '{s}' does not exist or is not accessible: {s}", .{ vulkan_sdk, @errorName(err) });
+            @panic("invalid VULKAN_SDK path");
+        };
+        defer std.Io.Dir.close(vk_dir, b.graph.io);
+
+        // Case-insensitively find 'include' and 'lib' subdirectories
+        const include_name = (findDirNameCaseless(b.allocator, b.graph.io, vk_dir, "include") catch @panic("I/O error scanning VULKAN_SDK")) orelse {
+            std.log.err("VULKAN_SDK directory '{s}' does not contain an 'include' subdirectory", .{vulkan_sdk});
+            @panic("Vulkan SDK missing include directory");
+        };
+
+        const lib_name = (findDirNameCaseless(b.allocator, b.graph.io, vk_dir, "lib") catch @panic("I/O error scanning VULKAN_SDK")) orelse {
+            std.log.err("VULKAN_SDK directory '{s}' does not contain a 'lib' subdirectory", .{vulkan_sdk});
+            @panic("Vulkan SDK missing lib directory");
+        };
+
+        const include_path = std.fs.path.join(b.allocator, &[_][]const u8{ vulkan_sdk, include_name }) catch @panic("OOM");
+        const lib_path = std.fs.path.join(b.allocator, &[_][]const u8{ vulkan_sdk, lib_name }) catch @panic("OOM");
+
+        mod.addIncludePath(.{ .cwd_relative = include_path });
+        mod.addLibraryPath(.{ .cwd_relative = lib_path });
+        mod.linkSystemLibrary("vulkan-1", .{});
+    }
+    if (options.rgfw_webgpu) {
+        mod.addCMacro("RGFW_WEBGPU", "");
+        mod.addIncludePath(b.path("include"));
+        // Note: when using WebGPU, you must link a WebGPU implementation library
+        // (e.g. wgpu_native, dawn, webgpu_dawn) yourself.
+    }
     if (options.rgfw_native) mod.addCMacro("RGFW_NATIVE", "");
     if (options.rgfw_x11) mod.addCMacro("RGFW_X11", "");
     if (options.rgfw_wayland) mod.addCMacro("RGFW_WAYLAND", "");
