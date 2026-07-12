@@ -5,7 +5,7 @@ const rgfw = @import("rgfw");
 
 pub fn main() !void {
     // Initialize the RGFW library (0 = success, negative = error, positive = warning)
-    const init_result = rgfw.init(null, .{ .openGl = true });
+    const init_result = rgfw.init("MyApp", .{ .openGl = true });
     if (init_result < 0) {
         @panic("RGFW init failed");
     }
