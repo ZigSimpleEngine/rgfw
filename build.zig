@@ -25,7 +25,6 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     const options = .{
-        .sys_libs_preset = b.option([]const u8, "sys_libs_preset", "Preset for system library linking: none, windows, linux, macos") orelse "windows",
         .rgfw_opengl = b.option(bool, "rgfw_opengl", "Force compilation with OpenGL context creation and support") orelse false,
         .rgfw_egl = b.option(bool, "rgfw_egl", "Compiles with EGL context creation support, allowing you to use EGL instead of native OpenGL context functions (WGL/GLX/NSGL)") orelse false,
         .rgfw_vulkan = b.option(bool, "rgfw_vulkan", "Enables Vulkan context creation helper functions, macros, and structure definitions") orelse false,
@@ -110,11 +109,12 @@ pub fn build(b: *std.Build) void {
     mod.addOptions("rgfw_options", rgfw_options);
     mod.addIncludePath(b.path("."));
     mod.addCSourceFile(.{ .file = b.path("RGFW.c") });
-    if (std.mem.eql(u8, options.sys_libs_preset, "windows")) {
+    if (target.result.os.tag == .windows) {
+        mod.linkSystemLibrary("opengl32", .{});
         mod.linkSystemLibrary("gdi32", .{});
         mod.linkSystemLibrary("shell32", .{});
         mod.linkSystemLibrary("user32", .{});
-    } else if (std.mem.eql(u8, options.sys_libs_preset, "linux")) {
+    } else if (target.result.os.tag == .linux) {
         if (options.rgfw_wayland) {
             mod.linkSystemLibrary("wayland-client", .{});
             mod.linkSystemLibrary("wayland-egl", .{});
@@ -127,7 +127,7 @@ pub fn build(b: *std.Build) void {
             mod.linkSystemLibrary("m", .{});
             mod.linkSystemLibrary("dl", .{});
         }
-    } else if (std.mem.eql(u8, options.sys_libs_preset, "macos")) {
+    } else if (target.result.os.tag.isDarwin()) {
         mod.linkFramework("Cocoa", .{});
         mod.linkFramework("IOKit", .{});
     }
@@ -331,8 +331,6 @@ pub fn build(b: *std.Build) void {
     var example_install = b.addInstallArtifact(example_exe, .{});
 
     example_exe.root_module.addImport("rgfw", mod);
-    example_exe.root_module.linkSystemLibrary("opengl32", .{});
-    example_exe.root_module.linkSystemLibrary("gdi32", .{});
 
     var example_run = b.addRunArtifact(example_exe);
 
