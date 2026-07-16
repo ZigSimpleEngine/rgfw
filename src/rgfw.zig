@@ -580,6 +580,7 @@ pub const ColorLayout = extern struct {
     a: i32,
     /// Number of channels per pixel.
     channels: u32,
+    pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
 /// Gamma ramp data for a monitor.
@@ -593,6 +594,7 @@ pub const GammaRamp = extern struct {
     blue: [*]u16,
     /// Number of elements in each gamma channel array.
     size: usize,
+    pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
 /// Describes a display mode: resolution, refresh rate, and color depth.
@@ -611,6 +613,7 @@ pub const MonitorMode = extern struct {
     blue: u8,
     /// Source API mode pointer (platform-specific).
     src: ?*anyopaque,
+    pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
 /// 2D integer position.
@@ -619,6 +622,7 @@ pub const Position = struct {
     x: i32,
     /// Y coordinate.
     y: i32,
+    pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
 /// 2D integer size (width and height).
@@ -627,6 +631,7 @@ pub const Size = struct {
     w: i32,
     /// Height.
     h: i32,
+    pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
 /// 2D floating-point scale factors.
@@ -635,6 +640,7 @@ pub const Scale = struct {
     x: f32,
     /// Scale on the Y axis.
     y: f32,
+    pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
 /// 2D integer rectangle (position + size).
@@ -647,6 +653,7 @@ pub const Rect = struct {
     w: i32,
     /// Height.
     h: i32,
+    pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
 /// 2D floating-point mouse delta/vector.
@@ -655,6 +662,7 @@ pub const MouseVector = struct {
     x: f32,
     /// Delta on the Y axis.
     y: f32,
+    pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
 /// Describes an image: pixel data, dimensions, and format.
@@ -667,23 +675,27 @@ pub const Image = struct {
     h: i32,
     /// Pixel format identifier.
     format: Format,
+    pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
 pub const CommonEvent = extern struct {
     type: EventType = .none,
     win: ?*Window = null,
+    pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
 pub const WindowFocusEvent = extern struct {
     type: EventType = .none,
     win: ?*Window = null,
     state: bool = false,
+    pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 pub const MouseButtonEvent = extern struct {
     type: EventType = .none,
     win: ?*Window = null,
     value: MouseButton = .left,
     state: bool = false,
+    pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
 pub const MouseDeltaEvent = extern struct {
@@ -691,6 +703,7 @@ pub const MouseDeltaEvent = extern struct {
     win: ?*Window = null,
     x: f32 = 0,
     y: f32 = 0,
+    pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
 pub const MouseMotionEvent = extern struct {
@@ -699,6 +712,7 @@ pub const MouseMotionEvent = extern struct {
     x: i32 = 0,
     y: i32 = 0,
     inWindow: bool = false,
+    pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
 pub const KeyEvent = extern struct {
@@ -708,12 +722,14 @@ pub const KeyEvent = extern struct {
     repeat: bool = false,
     mod: KeyMod = .none,
     state: bool = false,
+    pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
 pub const KeyCharEvent = extern struct {
     type: EventType = .none,
     win: ?*Window = null,
     value: u32 = 0,
+    pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
 /// A single node in the linked list of dropped data items.
@@ -722,12 +738,14 @@ pub const DataDropNode = extern struct {
     length: usize = 0,
     type: DataTransferType = .none,
     next: [*c]DataDropNode = null,
+    pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
 pub const DataDropEvent = extern struct {
     type: EventType = .none,
     win: ?*Window = null,
     value: [*c]const DataDropNode = null,
+    pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
 pub const DataDragEvent = extern struct {
@@ -737,6 +755,7 @@ pub const DataDragEvent = extern struct {
     y: i32 = 0,
     action: DndActionType = .none,
     dataType: DataTransferType = .none,
+    pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
 pub const ScaleUpdatedEvent = extern struct {
@@ -744,6 +763,7 @@ pub const ScaleUpdatedEvent = extern struct {
     win: ?*Window = null,
     x: f32 = 0,
     y: f32 = 0,
+    pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
 pub const MonitorEvent = extern struct {
@@ -751,6 +771,7 @@ pub const MonitorEvent = extern struct {
     win: ?*Window = null,
     monitor: ?*const Monitor = null,
     state: bool = false,
+    pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
 pub const WindowUpdateEvent = extern struct {
@@ -760,14 +781,19 @@ pub const WindowUpdateEvent = extern struct {
     y: i32 = 0,
     w: i32 = 0,
     h: i32 = 0,
+    pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
-pub fn checkEvent(event: *Event) bool {
-    return boolFromC(c.RGFW_checkEvent(@ptrCast(event)));
+pub fn checkEvent() ?Event {
+    var event: Event = undefined;
+    if (!boolFromC(c.RGFW_checkEvent(@ptrCast(&event)))) return null;
+    return event;
 }
 
-pub fn checkQueuedEvent(event: *Event) bool {
-    return boolFromC(c.RGFW_checkQueuedEvent(@ptrCast(event)));
+pub fn checkQueuedEvent() ?Event {
+    var event: Event = undefined;
+    if (!boolFromC(c.RGFW_checkQueuedEvent(@ptrCast(&event)))) return null;
+    return event;
 }
 
 pub fn eventQueuePush(event: *const Event) void {
@@ -846,6 +872,8 @@ pub const Event = extern union {
             .count => unreachable,
         }
     }
+
+    pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
 extern fn RGFW_writeClipboard(data: *const DataTransfer) bool;
@@ -856,12 +884,14 @@ pub const DataTransfer = extern struct {
     length: usize = 0,
     type: DataTransferType = .none,
 
+    pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
     pub const writeClipboard = RGFW_writeClipboard;
 };
 pub const genericFunc = ?*const fn (e: *const Event) callconv(.c) void;
 /// Holds an array of callback function pointers for every event type.
 pub const Callbacks = extern struct {
     arr: [25]genericFunc = @import("std").mem.zeroes([25]genericFunc),
+    pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
 /// OpenGL / EGL context creation hints (buffer sizes, profile, version, etc.).
@@ -891,6 +921,7 @@ pub const GlHints = extern struct {
     share: ?*GlContext = null,
     shareEGL: ?*EglContext = null,
     renderer: GlRenderer = .accelerated,
+    pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
 /// OpenGL attribute stack for context creation.
@@ -898,6 +929,7 @@ pub const AttribStack = extern struct {
     attribs: [*c]i32,
     count: usize,
     max: usize,
+    pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
 /// Generic function pointer returned by OpenGL/EGL proc-address queries.
@@ -1452,13 +1484,17 @@ pub const window = struct {
     }
 
     /// Poll and pop the next event for this specific window.
-    pub fn checkEvent(win: *Window, event: *Event) bool {
-        return boolFromC(c.RGFW_window_checkEvent(cWindow(win), ptrCast(*c.RGFW_event, event)));
+    pub fn checkEvent(win: *Window) ?Event {
+        var event: Event = undefined;
+        if (!boolFromC(c.RGFW_window_checkEvent(cWindow(win), ptrCast(*c.RGFW_event, &event)))) return null;
+        return event;
     }
 
     /// Pop the first queued event for this specific window without polling.
-    pub fn checkQueuedEvent(win: *Window, event: *Event) bool {
-        return boolFromC(c.RGFW_window_checkQueuedEvent(cWindow(win), ptrCast(*c.RGFW_event, event)));
+    pub fn checkQueuedEvent(win: *Window) ?Event {
+        var event: Event = undefined;
+        if (!boolFromC(c.RGFW_window_checkQueuedEvent(cWindow(win), ptrCast(*c.RGFW_event, &event)))) return null;
+        return event;
     }
 
     /// Returns true if the key was pressed this frame while the window is in focus.
