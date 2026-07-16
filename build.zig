@@ -20,79 +20,299 @@ fn findDirNameCaseless(allocator: std.mem.Allocator, io: std.Io, dir: std.Io.Dir
     return null;
 }
 
+pub const Options = struct {
+    /// Force compilation with OpenGL context creation and support
+    rgfw_opengl: bool = false,
+    /// Compiles with EGL context creation support, allowing you to use EGL instead of native OpenGL context functions (WGL/GLX/NSGL)
+    rgfw_egl: bool = false,
+    /// Enables Vulkan context creation helper functions, macros, and structure definitions
+    rgfw_vulkan: bool = false,
+    /// Exposes and includes DirectX integration helper functions (Windows only)
+    rgfw_directx: bool = false,
+    /// Enables WebGPU integration and helper context creation functions
+    rgfw_webgpu: bool = false,
+    /// Exposes and defines native RGFW structures and types that utilize platform_native API structures
+    rgfw_native: bool = false,
+    /// Prevents defining the global RGFW_info structure
+    rgfw_no_info: bool = false,
+    /// Disables the usage of GLXWindow for X11 OpenGL contexts
+    rgfw_no_glxwindow: bool = false,
+    /// Disables dynamic heap allocation of monitor info structures when the preallocated monitor storage limit is exceeded
+    rgfw_no_allocate_monitors: bool = false,
+    /// Disables the automatic inclusion of the vulkan/vulkan.h header, forcing the user to include it manually
+    rgfw_no_include_vulkan: bool = false,
+    /// Disables initializing with a static global variable context, using heap allocations instead if RGFW is not manually initialized
+    rgfw_no_static_context: bool = false,
+    /// Prevents fallback to X11 if Wayland is requested but is unavailable or fails
+    rgfw_no_x11: bool = false,
+    /// Disables Xcursor support completely under X11, falling back to standard cursors
+    rgfw_no_x11_cursor: bool = false,
+    /// Uses Xcursor under X11, but compiles without dynamically preloading libXcursor, requiring you to link with _lXcursor
+    rgfw_no_x11_cursor_preload: bool = false,
+    /// Uses Xext under X11, but compiles without dynamically preloading libXext, requiring you to link with _lXext
+    rgfw_no_x11_ext_preload: bool = false,
+    /// Uses XInput2 under X11, but compiles without dynamically preloading libXi, requiring you to link with _lXi
+    rgfw_no_x11_xi_preload: bool = false,
+    /// Uses winmm on Windows, but compiles without dynamically loading winmm.dll, requiring you to link with _lwinmm
+    rgfw_no_load_winmm: bool = false,
+    /// Disables winmm (and timeBeginPeriod) usage entirely under Windows
+    rgfw_no_winmm: bool = false,
+    /// Disables IOKit framework usage and linking on macOS
+    rgfw_no_iokit: bool = false,
+    /// Disables linking POSIX clock functions (clock_gettime) on Unix_like systems
+    rgfw_no_unix_clock: bool = false,
+    /// Disables usage and linking of Desktop Window Manager (dwmapi) library on Windows
+    rgfw_no_dwm: bool = false,
+    /// Disables powf and other math library functions, preventing inclusion of <math.h> for minimal systems
+    rgfw_no_math: bool = false,
+    /// Disables mouse passthrough functionality and excludes related APIs from compilation
+    rgfw_no_passthrough: bool = false,
+    /// Disables High_DPI calculations and Shcore.dll library loading/usage on Windows
+    rgfw_no_dpi: bool = false,
+    /// Forces the X11 backend to be used (default on Unix systems except macOS)
+    rgfw_x11: bool = false,
+    /// Enables compiling with the Wayland backend (Unix only, can be used concurrently with X11 for dynamic dual backend support)
+    rgfw_wayland: bool = false,
+    /// Enables XDL (Xlib Dynamic Loader) to dynamically load X11 functions at runtime (requires including XDL.h)
+    rgfw_use_xdl: bool = false,
+    /// Enables advanced methods for smooth resizing on Windows (such as WM_TIMER) and X11 (such as XSync), which might slightly impact performance or memory
+    rgfw_advanced_smooth_resize: bool = false,
+    /// Forces the use of standard C primitive integer types instead of <stdint.h> types
+    rgfw_use_int: bool = false,
+    /// Disables standard OS backend detection entirely, enabling building/linking with a custom windowing backend
+    rgfw_custom_backend: bool = false,
+    /// Enables libdecor support for client_side decorations on Wayland
+    rgfw_libdecor: bool = false,
+    /// Enables automatic graphics switching on macOS Cocoa, allowing the system to switch dynamically between integrated and discrete GPUs
+    rgfw_cocoa_graphics_switching: bool = false,
+    /// Disables modern Win32 calls and APIs to target Windows 95 compatibility
+    rgfw_win95: bool = false,
+    /// Forces compilation with C89 compatibility settings (disables stdint.h/newer features)
+    rgfw_c89: bool = false,
+    /// Auto_defined when using both X11 and Wayland concurrently, enabling runtime dynamic platform entry loading, but can be manually defined to configure dynamic execution behavior
+    rgfw_dynamic: bool = false,
+    /// Forces or indicates macOS Cocoa target platform compilation
+    rgfw_macos: bool = false,
+    /// Forces or indicates macOS X11 target platform compilation
+    rgfw_macos_x11: bool = false,
+    /// Forces or indicates Unix/Linux target platform compilation
+    rgfw_unix: bool = false,
+    /// Forces or indicates WebAssembly/Emscripten target platform compilation
+    rgfw_wasm: bool = false,
+    /// Forces or indicates Windows target platform compilation
+    rgfw_windows: bool = false,
+    /// Forces an assertion crash immediately when an X11 protocol error is encountered
+    rgfw_x11_crash_on_error: bool = false,
+    /// Sets a custom Cocoa frame name on macOS
+    rgfw_cocoa_frame_name: ?[]const u8 = null,
+    /// Overrides the default heap allocation function (defaults to standard malloc)
+    rgfw_alloc: ?[]const u8 = null,
+    /// Overrides the default deallocation function (defaults to standard free)
+    rgfw_free: ?[]const u8 = null,
+    /// Sets a default user pointer argument to be sent to standard allocator calls (defaults to NULL)
+    rgfw_userptr: ?[]const u8 = null,
+    /// Configures function declarations to be exported when building RGFW as a separate library/DLL
+    rgfw_export: ?[]const u8 = null,
+    /// Configures function declarations to be imported when linking against RGFW as an external library
+    rgfw_import: ?[]const u8 = null,
+    /// Overrides the underlying boolean type used by RGFW (defaults to u32)
+    rgfw_bool_type: ?[]const u8 = null,
+    /// Overrides the standard assert macro with a custom assertion macro (defaults to assert)
+    rgfw_assert: ?[]const u8 = null,
+    /// Overrides the macro used for compile_time static assertions
+    rgfw_static_assert: ?[]const u8 = null,
+    /// Overrides the default snprintf function implementation
+    rgfw_snprintf: ?[]const u8 = null,
+    /// Overrides the default printf function implementation (used for debug printing)
+    rgfw_printf: ?[]const u8 = null,
+    /// Overrides the memory zeroing function (defaults to memset with a size of 0)
+    rgfw_memzero: ?[]const u8 = null,
+    /// Overrides the memory copy function (defaults to memcpy)
+    rgfw_memcpy: ?[]const u8 = null,
+    /// Overrides the string comparison function (defaults to strncmp)
+    rgfw_strncmp: ?[]const u8 = null,
+    /// Overrides the string copy function (defaults to strncpy)
+    rgfw_strncpy: ?[]const u8 = null,
+    /// Overrides the substring search function (defaults to strstr)
+    rgfw_strstr: ?[]const u8 = null,
+    /// Overrides the string_to_long integer parsing function (defaults to strtol)
+    rgfw_strtol: ?[]const u8 = null,
+    /// Overrides the string_to_float parsing function (defaults to atof)
+    rgfw_atof: ?[]const u8 = null,
+    /// Overrides the custom coordinate rounding macro
+    rgfw_round: ?[]const u8 = null,
+    /// Overrides the custom float coordinate rounding macro
+    rgfw_roundf: ?[]const u8 = null,
+    /// Overrides the default minimum macro
+    rgfw_min: ?[]const u8 = null,
+    /// Overrides the macro used to suppress unused variable compiler warnings
+    rgfw_unused: ?[]const u8 = null,
+    /// Overrides the preallocated monitor buffer size to avoid dynamic heap allocation (defaults to 6)
+    rgfw_preallocated_monitors: ?u32 = null,
+    /// Configures the maximum number of events stored in the internal RGFW event queue (defaults to 32)
+    rgfw_max_events: ?u32 = null,
+    /// Overrides the default XDnD (Drag and Drop) protocol version (defaults to 5 on X11)
+    rgfw_xdnd_version: ?u32 = null,
+    /// Enables RGFW debug mode, printing debug messages and detailed errors when they occur
+    rgfw_debug: bool = false,
+
+    pub fn initFromOptions(b: *std.Build) Options {
+        return .{
+            .rgfw_opengl = b.option(bool, "rgfw_opengl", "Force compilation with OpenGL context creation and support") orelse false,
+            .rgfw_egl = b.option(bool, "rgfw_egl", "Compiles with EGL context creation support, allowing you to use EGL instead of native OpenGL context functions (WGL/GLX/NSGL)") orelse false,
+            .rgfw_vulkan = b.option(bool, "rgfw_vulkan", "Enables Vulkan context creation helper functions, macros, and structure definitions") orelse false,
+            .rgfw_directx = b.option(bool, "rgfw_directx", "Exposes and includes DirectX integration helper functions (Windows only)") orelse false,
+            .rgfw_webgpu = b.option(bool, "rgfw_webgpu", "Enables WebGPU integration and helper context creation functions") orelse false,
+            .rgfw_native = b.option(bool, "rgfw_native", "Exposes and defines native RGFW structures and types that utilize platform_native API structures") orelse false,
+            .rgfw_no_info = b.option(bool, "rgfw_no_info", "Prevents defining the global RGFW_info structure") orelse false,
+            .rgfw_no_glxwindow = b.option(bool, "rgfw_no_glxwindow", "Disables the usage of GLXWindow for X11 OpenGL contexts") orelse false,
+            .rgfw_no_allocate_monitors = b.option(bool, "rgfw_no_allocate_monitors", "Disables dynamic heap allocation of monitor info structures when the preallocated monitor storage limit is exceeded") orelse false,
+            .rgfw_no_include_vulkan = b.option(bool, "rgfw_no_include_vulkan", "Disables the automatic inclusion of the vulkan/vulkan.h header, forcing the user to include it manually") orelse false,
+            .rgfw_no_static_context = b.option(bool, "rgfw_no_static_context", "Disables initializing with a static global variable context, using heap allocations instead if RGFW is not manually initialized") orelse false,
+            .rgfw_no_x11 = b.option(bool, "rgfw_no_x11", "Prevents fallback to X11 if Wayland is requested but is unavailable or fails") orelse false,
+            .rgfw_no_x11_cursor = b.option(bool, "rgfw_no_x11_cursor", "Disables Xcursor support completely under X11, falling back to standard cursors") orelse false,
+            .rgfw_no_x11_cursor_preload = b.option(bool, "rgfw_no_x11_cursor_preload", "Uses Xcursor under X11, but compiles without dynamically preloading libXcursor, requiring you to link with _lXcursor") orelse false,
+            .rgfw_no_x11_ext_preload = b.option(bool, "rgfw_no_x11_ext_preload", "Uses Xext under X11, but compiles without dynamically preloading libXext, requiring you to link with _lXext") orelse false,
+            .rgfw_no_x11_xi_preload = b.option(bool, "rgfw_no_x11_xi_preload", "Uses XInput2 under X11, but compiles without dynamically preloading libXi, requiring you to link with _lXi") orelse false,
+            .rgfw_no_load_winmm = b.option(bool, "rgfw_no_load_winmm", "Uses winmm on Windows, but compiles without dynamically loading winmm.dll, requiring you to link with _lwinmm") orelse false,
+            .rgfw_no_winmm = b.option(bool, "rgfw_no_winmm", "Disables winmm (and timeBeginPeriod) usage entirely under Windows") orelse false,
+            .rgfw_no_iokit = b.option(bool, "rgfw_no_iokit", "Disables IOKit framework usage and linking on macOS") orelse false,
+            .rgfw_no_unix_clock = b.option(bool, "rgfw_no_unix_clock", "Disables linking POSIX clock functions (clock_gettime) on Unix_like systems") orelse false,
+            .rgfw_no_dwm = b.option(bool, "rgfw_no_dwm", "Disables usage and linking of Desktop Window Manager (dwmapi) library on Windows") orelse false,
+            .rgfw_no_math = b.option(bool, "rgfw_no_math", "Disables powf and other math library functions, preventing inclusion of <math.h> for minimal systems") orelse false,
+            .rgfw_no_passthrough = b.option(bool, "rgfw_no_passthrough", "Disables mouse passthrough functionality and excludes related APIs from compilation") orelse false,
+            .rgfw_no_dpi = b.option(bool, "rgfw_no_dpi", "Disables High_DPI calculations and Shcore.dll library loading/usage on Windows") orelse false,
+            .rgfw_x11 = b.option(bool, "rgfw_x11", "Forces the X11 backend to be used (default on Unix systems except macOS)") orelse false,
+            .rgfw_wayland = b.option(bool, "rgfw_wayland", "Enables compiling with the Wayland backend (Unix only, can be used concurrently with X11 for dynamic dual backend support)") orelse false,
+            .rgfw_use_xdl = b.option(bool, "rgfw_use_xdl", "Enables XDL (Xlib Dynamic Loader) to dynamically load X11 functions at runtime (requires including XDL.h)") orelse false,
+            .rgfw_advanced_smooth_resize = b.option(bool, "rgfw_advanced_smooth_resize", "Enables advanced methods for smooth resizing on Windows (such as WM_TIMER) and X11 (such as XSync), which might slightly impact performance or memory") orelse false,
+            .rgfw_use_int = b.option(bool, "rgfw_use_int", "Forces the use of standard C primitive integer types instead of <stdint.h> types") orelse false,
+            .rgfw_custom_backend = b.option(bool, "rgfw_custom_backend", "Disables standard OS backend detection entirely, enabling building/linking with a custom windowing backend") orelse false,
+            .rgfw_libdecor = b.option(bool, "rgfw_libdecor", "Enables libdecor support for client_side decorations on Wayland") orelse false,
+            .rgfw_cocoa_graphics_switching = b.option(bool, "rgfw_cocoa_graphics_switching", "Enables automatic graphics switching on macOS Cocoa, allowing the system to switch dynamically between integrated and discrete GPUs") orelse false,
+            .rgfw_win95 = b.option(bool, "rgfw_win95", "Disables modern Win32 calls and APIs to target Windows 95 compatibility") orelse false,
+            .rgfw_c89 = b.option(bool, "rgfw_c89", "Forces compilation with C89 compatibility settings (disables stdint.h/newer features)") orelse false,
+            .rgfw_dynamic = b.option(bool, "rgfw_dynamic", "Auto_defined when using both X11 and Wayland concurrently, enabling runtime dynamic platform entry loading, but can be manually defined to configure dynamic execution behavior") orelse false,
+            .rgfw_macos = b.option(bool, "rgfw_macos", "Forces or indicates macOS Cocoa target platform compilation") orelse false,
+            .rgfw_macos_x11 = b.option(bool, "rgfw_macos_x11", "Forces or indicates macOS X11 target platform compilation") orelse false,
+            .rgfw_unix = b.option(bool, "rgfw_unix", "Forces or indicates Unix/Linux target platform compilation") orelse false,
+            .rgfw_wasm = b.option(bool, "rgfw_wasm", "Forces or indicates WebAssembly/Emscripten target platform compilation") orelse false,
+            .rgfw_windows = b.option(bool, "rgfw_windows", "Forces or indicates Windows target platform compilation") orelse false,
+            .rgfw_x11_crash_on_error = b.option(bool, "rgfw_x11_crash_on_error", "Forces an assertion crash immediately when an X11 protocol error is encountered") orelse false,
+            .rgfw_cocoa_frame_name = b.option([]const u8, "rgfw_cocoa_frame_name", "Sets a custom Cocoa frame name on macOS"),
+            .rgfw_alloc = b.option([]const u8, "rgfw_alloc", "Overrides the default heap allocation function (defaults to standard malloc)"),
+            .rgfw_free = b.option([]const u8, "rgfw_free", "Overrides the default deallocation function (defaults to standard free)"),
+            .rgfw_userptr = b.option([]const u8, "rgfw_userptr", "Sets a default user pointer argument to be sent to standard allocator calls (defaults to NULL)"),
+            .rgfw_export = b.option([]const u8, "rgfw_export", "Configures function declarations to be exported when building RGFW as a separate library/DLL"),
+            .rgfw_import = b.option([]const u8, "rgfw_import", "Configures function declarations to be imported when linking against RGFW as an external library"),
+            .rgfw_bool_type = b.option([]const u8, "rgfw_bool", "Overrides the underlying boolean type used by RGFW (defaults to u32)"),
+            .rgfw_assert = b.option([]const u8, "rgfw_assert", "Overrides the standard assert macro with a custom assertion macro (defaults to assert)"),
+            .rgfw_static_assert = b.option([]const u8, "rgfw_static_assert", "Overrides the macro used for compile_time static assertions"),
+            .rgfw_snprintf = b.option([]const u8, "rgfw_snprintf", "Overrides the default snprintf function implementation"),
+            .rgfw_printf = b.option([]const u8, "rgfw_printf", "Overrides the default printf function implementation (used for debug printing)"),
+            .rgfw_memzero = b.option([]const u8, "rgfw_memzero", "Overrides the memory zeroing function (defaults to memset with a size of 0)"),
+            .rgfw_memcpy = b.option([]const u8, "rgfw_memcpy", "Overrides the memory copy function (defaults to memcpy)"),
+            .rgfw_strncmp = b.option([]const u8, "rgfw_strncmp", "Overrides the string comparison function (defaults to strncmp)"),
+            .rgfw_strncpy = b.option([]const u8, "rgfw_strncpy", "Overrides the string copy function (defaults to strncpy)"),
+            .rgfw_strstr = b.option([]const u8, "rgfw_strstr", "Overrides the substring search function (defaults to strstr)"),
+            .rgfw_strtol = b.option([]const u8, "rgfw_strtol", "Overrides the string_to_long integer parsing function (defaults to strtol)"),
+            .rgfw_atof = b.option([]const u8, "rgfw_atof", "Overrides the string_to_float parsing function (defaults to atof)"),
+            .rgfw_round = b.option([]const u8, "rgfw_round", "Overrides the custom coordinate rounding macro"),
+            .rgfw_roundf = b.option([]const u8, "rgfw_roundf", "Overrides the custom float coordinate rounding macro"),
+            .rgfw_min = b.option([]const u8, "rgfw_min", "Overrides the default minimum macro"),
+            .rgfw_unused = b.option([]const u8, "rgfw_unused", "Overrides the macro used to suppress unused variable compiler warnings"),
+            .rgfw_preallocated_monitors = b.option(u32, "rgfw_preallocated_monitors", "Overrides the preallocated monitor buffer size to avoid dynamic heap allocation (defaults to 6)"),
+            .rgfw_max_events = b.option(u32, "rgfw_max_events", "Configures the maximum number of events stored in the internal RGFW event queue (defaults to 32)"),
+            .rgfw_xdnd_version = b.option(u32, "rgfw_xdnd_version", "Overrides the default XDnD (Drag and Drop) protocol version (defaults to 5 on X11)"),
+            .rgfw_debug = b.option(bool, "rgfw_debug", "Enables RGFW debug mode, printing debug messages and detailed errors when they occur") orelse false,
+        };
+    }
+
+    pub fn toDependencyArgs(comptime value: anytype) CompactType(value) {
+        const Result = CompactType(value);
+
+        var result: Result = undefined;
+
+        const fields = @typeInfo(@TypeOf(value)).@"struct".fields;
+
+        inline for (fields) |field| {
+            const v = @field(value, field.name);
+
+            if (isKeep(v)) {
+                switch (@typeInfo(field.type)) {
+                    .optional => {
+                        @field(result, field.name) = v.?;
+                    },
+                    else => {
+                        @field(result, field.name) = v;
+                    },
+                }
+            }
+        }
+
+        return result;
+    }
+
+    fn unwrap(comptime T: type) type {
+        return switch (@typeInfo(T)) {
+            .optional => |o| o.child,
+            else => T,
+        };
+    }
+
+    fn isKeep(comptime value: anytype) bool {
+        return switch (@typeInfo(@TypeOf(value))) {
+            .optional => value != null,
+            .bool => value,
+            else => true,
+        };
+    }
+
+    fn CompactType(comptime value: anytype) type {
+        const T = @TypeOf(value);
+        const fields = @typeInfo(T).@"struct".fields;
+
+        comptime var count = 0;
+
+        inline for (fields) |field| {
+            if (isKeep(@field(value, field.name))) {
+                count += 1;
+            }
+        }
+
+        comptime var names: [count][]const u8 = undefined;
+        comptime var types: [count]type = undefined;
+        comptime var attrs: [count]std.builtin.Type.StructField.Attributes =
+            @splat(.{});
+
+        comptime var index = 0;
+
+        inline for (fields) |field| {
+            const v = @field(value, field.name);
+
+            if (isKeep(v)) {
+                names[index] = field.name;
+                types[index] = unwrap(field.type);
+                attrs[index] = .{};
+                index += 1;
+            }
+        }
+
+        return @Struct(
+            .auto,
+            null,
+            &names,
+            &types,
+            &attrs,
+        );
+    }
+};
+
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const options = .{
-        .rgfw_opengl = b.option(bool, "rgfw_opengl", "Force compilation with OpenGL context creation and support") orelse false,
-        .rgfw_egl = b.option(bool, "rgfw_egl", "Compiles with EGL context creation support, allowing you to use EGL instead of native OpenGL context functions (WGL/GLX/NSGL)") orelse false,
-        .rgfw_vulkan = b.option(bool, "rgfw_vulkan", "Enables Vulkan context creation helper functions, macros, and structure definitions") orelse false,
-        .rgfw_directx = b.option(bool, "rgfw_directx", "Exposes and includes DirectX integration helper functions (Windows only)") orelse false,
-        .rgfw_webgpu = b.option(bool, "rgfw_webgpu", "Enables WebGPU integration and helper context creation functions") orelse false,
-        .rgfw_native = b.option(bool, "rgfw_native", "Exposes and defines native RGFW structures and types that utilize platform_native API structures") orelse false,
-        .rgfw_no_info = b.option(bool, "rgfw_no_info", "Prevents defining the global RGFW_info structure") orelse false,
-        .rgfw_no_glxwindow = b.option(bool, "rgfw_no_glxwindow", "Disables the usage of GLXWindow for X11 OpenGL contexts") orelse false,
-        .rgfw_no_allocate_monitors = b.option(bool, "rgfw_no_allocate_monitors", "Disables dynamic heap allocation of monitor info structures when the preallocated monitor storage limit is exceeded") orelse false,
-        .rgfw_no_include_vulkan = b.option(bool, "rgfw_no_include_vulkan", "Disables the automatic inclusion of the vulkan/vulkan.h header, forcing the user to include it manually") orelse false,
-        .rgfw_no_static_context = b.option(bool, "rgfw_no_static_context", "Disables initializing with a static global variable context, using heap allocations instead if RGFW is not manually initialized") orelse false,
-        .rgfw_no_x11 = b.option(bool, "rgfw_no_x11", "Prevents fallback to X11 if Wayland is requested but is unavailable or fails") orelse false,
-        .rgfw_no_x11_cursor = b.option(bool, "rgfw_no_x11_cursor", "Disables Xcursor support completely under X11, falling back to standard cursors") orelse false,
-        .rgfw_no_x11_cursor_preload = b.option(bool, "rgfw_no_x11_cursor_preload", "Uses Xcursor under X11, but compiles without dynamically preloading libXcursor, requiring you to link with _lXcursor") orelse false,
-        .rgfw_no_x11_ext_preload = b.option(bool, "rgfw_no_x11_ext_preload", "Uses Xext under X11, but compiles without dynamically preloading libXext, requiring you to link with _lXext") orelse false,
-        .rgfw_no_x11_xi_preload = b.option(bool, "rgfw_no_x11_xi_preload", "Uses XInput2 under X11, but compiles without dynamically preloading libXi, requiring you to link with _lXi") orelse false,
-        .rgfw_no_load_winmm = b.option(bool, "rgfw_no_load_winmm", "Uses winmm on Windows, but compiles without dynamically loading winmm.dll, requiring you to link with _lwinmm") orelse false,
-        .rgfw_no_winmm = b.option(bool, "rgfw_no_winmm", "Disables winmm (and timeBeginPeriod) usage entirely under Windows") orelse false,
-        .rgfw_no_iokit = b.option(bool, "rgfw_no_iokit", "Disables IOKit framework usage and linking on macOS") orelse false,
-        .rgfw_no_unix_clock = b.option(bool, "rgfw_no_unix_clock", "Disables linking POSIX clock functions (clock_gettime) on Unix_like systems") orelse false,
-        .rgfw_no_dwm = b.option(bool, "rgfw_no_dwm", "Disables usage and linking of Desktop Window Manager (dwmapi) library on Windows") orelse false,
-        .rgfw_no_math = b.option(bool, "rgfw_no_math", "Disables powf and other math library functions, preventing inclusion of <math.h> for minimal systems") orelse false,
-        .rgfw_no_passthrough = b.option(bool, "rgfw_no_passthrough", "Disables mouse passthrough functionality and excludes related APIs from compilation") orelse false,
-        .rgfw_no_dpi = b.option(bool, "rgfw_no_dpi", "Disables High_DPI calculations and Shcore.dll library loading/usage on Windows") orelse false,
-        .rgfw_x11 = b.option(bool, "rgfw_x11", "Forces the X11 backend to be used (default on Unix systems except macOS)") orelse false,
-        .rgfw_wayland = b.option(bool, "rgfw_wayland", "Enables compiling with the Wayland backend (Unix only, can be used concurrently with X11 for dynamic dual backend support)") orelse false,
-        .rgfw_use_xdl = b.option(bool, "rgfw_use_xdl", "Enables XDL (Xlib Dynamic Loader) to dynamically load X11 functions at runtime (requires including XDL.h)") orelse false,
-        .rgfw_advanced_smooth_resize = b.option(bool, "rgfw_advanced_smooth_resize", "Enables advanced methods for smooth resizing on Windows (such as WM_TIMER) and X11 (such as XSync), which might slightly impact performance or memory") orelse false,
-        .rgfw_use_int = b.option(bool, "rgfw_use_int", "Forces the use of standard C primitive integer types instead of <stdint.h> types") orelse false,
-        .rgfw_custom_backend = b.option(bool, "rgfw_custom_backend", "Disables standard OS backend detection entirely, enabling building/linking with a custom windowing backend") orelse false,
-        .rgfw_libdecor = b.option(bool, "rgfw_libdecor", "Enables libdecor support for client_side decorations on Wayland") orelse false,
-        .rgfw_cocoa_graphics_switching = b.option(bool, "rgfw_cocoa_graphics_switching", "Enables automatic graphics switching on macOS Cocoa, allowing the system to switch dynamically between integrated and discrete GPUs") orelse false,
-        .rgfw_win95 = b.option(bool, "rgfw_win95", "Disables modern Win32 calls and APIs to target Windows 95 compatibility") orelse false,
-        .rgfw_c89 = b.option(bool, "rgfw_c89", "Forces compilation with C89 compatibility settings (disables stdint.h/newer features)") orelse false,
-        .rgfw_dynamic = b.option(bool, "rgfw_dynamic", "Auto_defined when using both X11 and Wayland concurrently, enabling runtime dynamic platform entry loading, but can be manually defined to configure dynamic execution behavior") orelse false,
-        .rgfw_macos = b.option(bool, "rgfw_macos", "Forces or indicates macOS Cocoa target platform compilation") orelse false,
-        .rgfw_macos_x11 = b.option(bool, "rgfw_macos_x11", "Forces or indicates macOS X11 target platform compilation") orelse false,
-        .rgfw_unix = b.option(bool, "rgfw_unix", "Forces or indicates Unix/Linux target platform compilation") orelse false,
-        .rgfw_wasm = b.option(bool, "rgfw_wasm", "Forces or indicates WebAssembly/Emscripten target platform compilation") orelse false,
-        .rgfw_windows = b.option(bool, "rgfw_windows", "Forces or indicates Windows target platform compilation") orelse false,
-        .rgfw_x11_crash_on_error = b.option(bool, "rgfw_x11_crash_on_error", "Forces an assertion crash immediately when an X11 protocol error is encountered") orelse false,
-        .rgfw_cocoa_frame_name = b.option([]const u8, "rgfw_cocoa_frame_name", "Sets a custom Cocoa frame name on macOS"),
-        .rgfw_alloc = b.option([]const u8, "rgfw_alloc", "Overrides the default heap allocation function (defaults to standard malloc)"),
-        .rgfw_free = b.option([]const u8, "rgfw_free", "Overrides the default deallocation function (defaults to standard free)"),
-        .rgfw_userptr = b.option([]const u8, "rgfw_userptr", "Sets a default user pointer argument to be sent to standard allocator calls (defaults to NULL)"),
-        .rgfw_export = b.option([]const u8, "rgfw_export", "Configures function declarations to be exported when building RGFW as a separate library/DLL"),
-        .rgfw_import = b.option([]const u8, "rgfw_import", "Configures function declarations to be imported when linking against RGFW as an external library"),
-        .rgfw_bool_type = b.option([]const u8, "rgfw_bool", "Overrides the underlying boolean type used by RGFW (defaults to u32)"),
-        .rgfw_assert = b.option([]const u8, "rgfw_assert", "Overrides the standard assert macro with a custom assertion macro (defaults to assert)"),
-        .rgfw_static_assert = b.option([]const u8, "rgfw_static_assert", "Overrides the macro used for compile_time static assertions"),
-        .rgfw_snprintf = b.option([]const u8, "rgfw_snprintf", "Overrides the default snprintf function implementation"),
-        .rgfw_printf = b.option([]const u8, "rgfw_printf", "Overrides the default printf function implementation (used for debug printing)"),
-        .rgfw_memzero = b.option([]const u8, "rgfw_memzero", "Overrides the memory zeroing function (defaults to memset with a size of 0)"),
-        .rgfw_memcpy = b.option([]const u8, "rgfw_memcpy", "Overrides the memory copy function (defaults to memcpy)"),
-        .rgfw_strncmp = b.option([]const u8, "rgfw_strncmp", "Overrides the string comparison function (defaults to strncmp)"),
-        .rgfw_strncpy = b.option([]const u8, "rgfw_strncpy", "Overrides the string copy function (defaults to strncpy)"),
-        .rgfw_strstr = b.option([]const u8, "rgfw_strstr", "Overrides the substring search function (defaults to strstr)"),
-        .rgfw_strtol = b.option([]const u8, "rgfw_strtol", "Overrides the string_to_long integer parsing function (defaults to strtol)"),
-        .rgfw_atof = b.option([]const u8, "rgfw_atof", "Overrides the string_to_float parsing function (defaults to atof)"),
-        .rgfw_round = b.option([]const u8, "rgfw_round", "Overrides the custom coordinate rounding macro"),
-        .rgfw_roundf = b.option([]const u8, "rgfw_roundf", "Overrides the custom float coordinate rounding macro"),
-        .rgfw_min = b.option([]const u8, "rgfw_min", "Overrides the default minimum macro"),
-        .rgfw_unused = b.option([]const u8, "rgfw_unused", "Overrides the macro used to suppress unused variable compiler warnings"),
-        .rgfw_preallocated_monitors = b.option(u32, "rgfw_preallocated_monitors", "Overrides the preallocated monitor buffer size to avoid dynamic heap allocation (defaults to 6)"),
-        .rgfw_max_events = b.option(u32, "rgfw_max_events", "Configures the maximum number of events stored in the internal RGFW event queue (defaults to 32)"),
-        .rgfw_xdnd_version = b.option(u32, "rgfw_xdnd_version", "Overrides the default XDnD (Drag and Drop) protocol version (defaults to 5 on X11)"),
-        .rgfw_debug = b.option(bool, "rgfw_debug", "Enables RGFW debug mode, printing debug messages and detailed errors when they occur") orelse false,
-    };
+    const options = Options.initFromOptions(b);
 
     const rgfw_options = b.addOptions();
     inline for (std.meta.fields(@TypeOf(options))) |field| {
