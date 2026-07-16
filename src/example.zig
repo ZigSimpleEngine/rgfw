@@ -25,10 +25,7 @@ pub fn main() !void {
 
     var previousEventType: rgfw.EventType = .none;
     while (!rgfw.window.shouldClose(win)) {
-        rgfw.pollEvents();
-        var event: rgfw.Event = undefined;
-
-        if (rgfw.checkEvent(&event)) {
+        if (rgfw.checkEvent()) |event| {
             const eventType = event.type;
             if (previousEventType != eventType) {
                 std.debug.print("{f}\n", .{event});
