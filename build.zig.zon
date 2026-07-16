@@ -1,6 +1,6 @@
 .{
     .name = .rgfw,
-    .version = "0.0.0",
+    .version = "0.0.1",
     .fingerprint = 0x502c4210185ab181,
     .minimum_zig_version = "0.16.0",
     .dependencies = .{},
