@@ -228,26 +228,20 @@ pub const Options = struct {
         };
     }
 
-    pub fn toDependencyArgs(comptime value: anytype) CompactType(value) {
+    pub fn toDependencyArgs(comptime value: Options) CompactType(value) {
         const Result = CompactType(value);
 
         var result: Result = undefined;
 
-        const fields = @typeInfo(@TypeOf(value)).@"struct".fields;
+        const fields = @typeInfo(Result).@"struct".fields;
 
         inline for (fields) |field| {
             const v = @field(value, field.name);
 
-            if (isKeep(v)) {
-                switch (@typeInfo(field.type)) {
-                    .optional => {
-                        @field(result, field.name) = v.?;
-                    },
-                    else => {
-                        @field(result, field.name) = v;
-                    },
-                }
-            }
+            @field(result, field.name) = switch (@typeInfo(@TypeOf(v))) {
+                .optional => v.?,
+                else => v,
+            };
         }
 
         return result;
@@ -264,7 +258,7 @@ pub const Options = struct {
         return switch (@typeInfo(@TypeOf(value))) {
             .optional => value != null,
             .bool => value,
-            else => true,
+            else => unreachable,
         };
     }
 
@@ -273,7 +267,6 @@ pub const Options = struct {
         const fields = @typeInfo(T).@"struct".fields;
 
         comptime var count = 0;
-
         inline for (fields) |field| {
             if (isKeep(@field(value, field.name))) {
                 count += 1;
@@ -289,7 +282,6 @@ pub const Options = struct {
 
         inline for (fields) |field| {
             const v = @field(value, field.name);
-
             if (isKeep(v)) {
                 names[index] = field.name;
                 types[index] = unwrap(field.type);
