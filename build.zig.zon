@@ -1,6 +1,6 @@
 .{
     .name = .rgfw,
-    .version = "0.0.1",
+    .version = "0.0.2",
     .fingerprint = 0x502c4210185ab181,
     .minimum_zig_version = "0.16.0",
     .dependencies = .{},
@@ -9,5 +9,11 @@
         "build.zig",
         "build.zig.zon",
         "src",
+        "include",
+        "rgfw_import.h",
+        "RGFW.c",
+        "RGFW.h",
+        "LICENSE",
+        "README.md",
     },
 }
