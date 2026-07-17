@@ -111,28 +111,30 @@ pub fn createLogger(
         ) void {
             var buf: [buffer_size]u8 = undefined;
 
-            const prefix =
-                if (scope == .default)
-                    level.asText() ++ ": "
-                else
-                    level.asText() ++ "(" ++ @tagName(scope) ++ "): ";
-
-            const msg =
-                std.fmt.bufPrintZ(
+            const msg = if (scope == .default)
+                std.fmt.bufPrintSentinel(
                     &buf,
-                    prefix ++ format,
-                    args,
-                ) catch {
-                    emscripten_console_error("log message too long");
-                    return;
-                };
+                    "{s}: " ++ format,
+                    .{level.asText()} ++ args,
+                    0,
+                )
+            else
+                std.fmt.bufPrintSentinel(
+                    &buf,
+                    "{s}(" ++ @tagName(scope) ++ "): " ++ format,
+                    .{level.asText()} ++ args,
+                    0,
+                );
+
+            const str = msg catch {
+                emscripten_console_error("log message too long");
+                return;
+            };
 
             switch (level) {
-                .err => emscripten_console_error(msg.ptr),
-
-                .warn => emscripten_console_warn(msg.ptr),
-
-                else => emscripten_console_log(msg.ptr),
+                .err => emscripten_console_error(str.ptr),
+                .warn => emscripten_console_warn(str.ptr),
+                else => emscripten_console_log(str.ptr),
             }
         }
     }.call;
