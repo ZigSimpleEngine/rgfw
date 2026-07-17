@@ -19,11 +19,6 @@ pub const createLogger: fn (
     comptime level: std.log.Level,
     comptime scope: @TypeOf(.enum_literal),
 ) fn (comptime []const u8, anytype) void = backend.createLogger;
-pub const createAllocLogger: fn (
-    allocator: std.mem.Allocator,
-    comptime level: std.log.Level,
-    comptime scope: @TypeOf(.enum_literal),
-) fn (comptime []const u8, anytype) void = backend.createAllocLogger;
 pub const panic = backend.panic;
 
 // const log = createLogger(1024, .info, .rgfw);

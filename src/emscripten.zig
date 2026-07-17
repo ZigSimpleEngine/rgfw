@@ -138,31 +138,6 @@ pub fn createLogger(
     }.call;
 }
 
-pub fn createAllocLogger(
-    gpa: std.mem.Allocator,
-    comptime level: std.log.Level,
-    comptime scope: @TypeOf(.enum_literal),
-) fn (comptime []const u8, anytype) void {
-    return struct {
-        fn logger(comptime format: []const u8, args: anytype) void {
-            const prefix = if (scope == .default)
-                level.asText() ++ ": "
-            else
-                level.asText() ++ "(" ++ @tagName(scope) ++ "): ";
-            const full = std.fmt.allocPrint(gpa, prefix ++ format, args) catch {
-                emscripten_console_error("log message too long");
-                return;
-            };
-            defer gpa.free(full);
-            switch (level) {
-                .err => emscripten_console_error(full.ptr),
-                .warn => emscripten_console_warn(full.ptr),
-                else => emscripten_console_log(full.ptr),
-            }
-        }
-    }.logger;
-}
-
 pub fn panic(msg: []const u8, error_return_trace: ?*std.builtin.StackTrace, ret_addr: ?usize) noreturn {
     _ = error_return_trace;
     _ = ret_addr;
