@@ -3,7 +3,7 @@
 const std = @import("std");
 const rgfw = @import("rgfw");
 const allocator = rgfw.allocator;
-const log = rgfw.createLogger(1024, .info, .example);
+const log = rgfw.createAllocLogger(allocator, .info, .example);
 const panic = rgfw.panic;
 
 pub fn main() !void {
