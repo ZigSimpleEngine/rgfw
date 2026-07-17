@@ -321,27 +321,29 @@ pub fn build(b: *std.Build) void {
     mod.addOptions("rgfw_options", rgfw_options);
     mod.addIncludePath(b.path("."));
     mod.addCSourceFile(.{ .file = b.path("RGFW.c") });
-    if (target.result.os.tag == .windows) {
-        mod.linkSystemLibrary("opengl32", .{});
-        mod.linkSystemLibrary("gdi32", .{});
-        mod.linkSystemLibrary("shell32", .{});
-        mod.linkSystemLibrary("user32", .{});
-    } else if (target.result.os.tag == .linux) {
-        if (options.rgfw_wayland) {
-            mod.linkSystemLibrary("wayland-client", .{});
-            mod.linkSystemLibrary("wayland-egl", .{});
-            mod.linkSystemLibrary("wayland-cursor", .{});
-            mod.linkSystemLibrary("xkbcommon", .{});
-            mod.linkSystemLibrary("dl", .{});
-        } else {
-            mod.linkSystemLibrary("X11", .{});
-            mod.linkSystemLibrary("Xrandr", .{});
-            mod.linkSystemLibrary("m", .{});
-            mod.linkSystemLibrary("dl", .{});
+    if (target.result.os.tag != .emscripten) {
+        if (target.result.os.tag == .windows) {
+            mod.linkSystemLibrary("opengl32", .{});
+            mod.linkSystemLibrary("gdi32", .{});
+            mod.linkSystemLibrary("shell32", .{});
+            mod.linkSystemLibrary("user32", .{});
+        } else if (target.result.os.tag == .linux) {
+            if (options.rgfw_wayland) {
+                mod.linkSystemLibrary("wayland-client", .{});
+                mod.linkSystemLibrary("wayland-egl", .{});
+                mod.linkSystemLibrary("wayland-cursor", .{});
+                mod.linkSystemLibrary("xkbcommon", .{});
+                mod.linkSystemLibrary("dl", .{});
+            } else {
+                mod.linkSystemLibrary("X11", .{});
+                mod.linkSystemLibrary("Xrandr", .{});
+                mod.linkSystemLibrary("m", .{});
+                mod.linkSystemLibrary("dl", .{});
+            }
+        } else if (target.result.os.tag.isDarwin()) {
+            mod.linkFramework("Cocoa", .{});
+            mod.linkFramework("IOKit", .{});
         }
-    } else if (target.result.os.tag.isDarwin()) {
-        mod.linkFramework("Cocoa", .{});
-        mod.linkFramework("IOKit", .{});
     }
 
     // Apply C macros (for RGFW.c, the single-header C library)
