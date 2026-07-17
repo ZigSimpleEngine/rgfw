@@ -2,6 +2,9 @@
 //! Similar to the basic example in the RGFW README.
 const std = @import("std");
 const rgfw = @import("rgfw");
+const allocator = rgfw.allocator;
+const log = rgfw.createLogger(1024, .info, .example);
+const panic = rgfw.panic;
 
 pub fn main() !void {
     // Initialize the RGFW library (0 = success, negative = error, positive = warning)
@@ -28,7 +31,7 @@ pub fn main() !void {
         if (rgfw.checkEvent()) |event| {
             const eventType = event.type;
             if (previousEventType != eventType) {
-                std.debug.print("{f}\n", .{event});
+                log("{f}", .{event});
                 previousEventType = eventType;
             }
         }

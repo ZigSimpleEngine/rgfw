@@ -8,6 +8,22 @@ const c = @cImport({
     @cInclude("rgfw_import.h");
 });
 
+const backend = switch (builtin.target.os.tag) {
+    .emscripten => @import("emscripten.zig"),
+    else => @import("native.zig"),
+};
+
+pub const allocator: std.mem.Allocator = backend.allocator;
+pub const createLogger: fn (
+    comptime buffer_size: usize,
+    comptime level: std.log.Level,
+    comptime scope: @TypeOf(.enum_literal),
+) fn (comptime []const u8, anytype) void = backend.createLogger;
+pub const panic = backend.panic;
+
+// const log = createLogger(1024, .info, .rgfw);
+const warn = createLogger(1024, .warn, .rgfw);
+
 // Functions inside #ifdef RGFW_IMPLEMENTATION that are not platform-specific.
 // Declared as extern fn because @cImport does not define RGFW_IMPLEMENTATION
 // (Zig 0.16's Aro C translator cannot handle the platform-specific includes
@@ -2112,7 +2128,7 @@ pub const opengl = struct {
     /// Set the global OpenGL hints used for context creation.
     pub fn setGlobalHints(hints: *GlHints) void {
         if (comptime !opts.rgfw_opengl) {
-            std.log.warn("Attempt to use function rgfw.opengl.setGlobalHints without setting option rgfw_opengl", .{});
+            warn("Attempt to use function rgfw.opengl.setGlobalHints without setting option rgfw_opengl", .{});
             return;
         }
         c.RGFW_setGlobalHints_OpenGL(ptrCast(*c.RGFW_glHints, hints));
@@ -2121,7 +2137,7 @@ pub const opengl = struct {
     /// Reset the global OpenGL hints to their default values.
     pub fn resetGlobalHints() void {
         if (comptime !opts.rgfw_opengl) {
-            std.log.warn("Attempt to use function rgfw.opengl.resetGlobalHints without setting option rgfw_opengl", .{});
+            warn("Attempt to use function rgfw.opengl.resetGlobalHints without setting option rgfw_opengl", .{});
             return;
         }
         c.RGFW_resetGlobalHints_OpenGL();
@@ -2130,7 +2146,7 @@ pub const opengl = struct {
     /// Get a pointer to the current global OpenGL hints.
     pub fn getGlobalHints() ?*GlHints {
         if (comptime !opts.rgfw_opengl) {
-            std.log.warn("Attempt to use function rgfw.opengl.getGlobalHints without setting option rgfw_opengl", .{});
+            warn("Attempt to use function rgfw.opengl.getGlobalHints without setting option rgfw_opengl", .{});
             return null;
         }
         const hints = c.RGFW_getGlobalHints_OpenGL();
@@ -2140,7 +2156,7 @@ pub const opengl = struct {
     /// Create and allocate a new native OpenGL context for a window.
     pub fn createContext(win: *Window, hints: ?*GlHints) ?*GlContext {
         if (comptime !opts.rgfw_opengl) {
-            std.log.warn("Attempt to use function rgfw.opengl.createContext without setting option rgfw_opengl", .{});
+            warn("Attempt to use function rgfw.opengl.createContext without setting option rgfw_opengl", .{});
             return null;
         }
         const ctx = c.RGFW_window_createContext_OpenGL(cWindow(win), if (hints) |h| ptrCast(*c.RGFW_glHints, h) else null);
@@ -2150,7 +2166,7 @@ pub const opengl = struct {
     /// Create a native OpenGL context using a pre-allocated `GlContext` structure.
     pub fn createContextPtr(win: *Window, ctx: *GlContext, hints: ?*GlHints) bool {
         if (comptime !opts.rgfw_opengl) {
-            std.log.warn("Attempt to use function rgfw.opengl.createContextPtr without setting option rgfw_opengl", .{});
+            warn("Attempt to use function rgfw.opengl.createContextPtr without setting option rgfw_opengl", .{});
             return false;
         }
         return boolFromC(c.RGFW_window_createContextPtr_OpenGL(cWindow(win), cGlContext(ctx), if (hints) |h| ptrCast(*c.RGFW_glHints, h) else null));
@@ -2159,7 +2175,7 @@ pub const opengl = struct {
     /// Get the native OpenGL context associated with a window.
     pub fn getContext(win: *Window) ?*GlContext {
         if (comptime !opts.rgfw_opengl) {
-            std.log.warn("Attempt to use function rgfw.opengl.getContext without setting option rgfw_opengl", .{});
+            warn("Attempt to use function rgfw.opengl.getContext without setting option rgfw_opengl", .{});
             return null;
         }
         return zigGlContext(c.RGFW_window_getContext_OpenGL(cWindow(win)));
@@ -2168,7 +2184,7 @@ pub const opengl = struct {
     /// Delete and free a native OpenGL context.
     pub fn deleteContext(win: *Window, ctx: *GlContext) void {
         if (comptime !opts.rgfw_opengl) {
-            std.log.warn("Attempt to use function rgfw.opengl.deleteContext without setting option rgfw_opengl", .{});
+            warn("Attempt to use function rgfw.opengl.deleteContext without setting option rgfw_opengl", .{});
             return;
         }
         c.RGFW_window_deleteContext_OpenGL(cWindow(win), cGlContext(ctx));
@@ -2177,7 +2193,7 @@ pub const opengl = struct {
     /// Delete a native OpenGL context without freeing its memory.
     pub fn deleteContextPtr(win: *Window, ctx: *GlContext) void {
         if (comptime !opts.rgfw_opengl) {
-            std.log.warn("Attempt to use function rgfw.opengl.deleteContextPtr without setting option rgfw_opengl", .{});
+            warn("Attempt to use function rgfw.opengl.deleteContextPtr without setting option rgfw_opengl", .{});
             return;
         }
         c.RGFW_window_deleteContextPtr_OpenGL(cWindow(win), cGlContext(ctx));
@@ -2186,7 +2202,7 @@ pub const opengl = struct {
     /// Get the underlying native OpenGL context handle from a `GlContext`.
     pub fn contextGetSourceContext(ctx: *GlContext) ?*anyopaque {
         if (comptime !opts.rgfw_opengl) {
-            std.log.warn("Attempt to use function rgfw.opengl.contextGetSourceContext without setting option rgfw_opengl", .{});
+            warn("Attempt to use function rgfw.opengl.contextGetSourceContext without setting option rgfw_opengl", .{});
             return null;
         }
         return c.RGFW_glContext_getSourceContext(cGlContext(ctx));
@@ -2195,7 +2211,7 @@ pub const opengl = struct {
     /// Make the window the current OpenGL drawing target.
     pub fn makeCurrentWindow(win: *Window) void {
         if (comptime !opts.rgfw_opengl) {
-            std.log.warn("Attempt to use function rgfw.opengl.makeCurrentWindow without setting option rgfw_opengl", .{});
+            warn("Attempt to use function rgfw.opengl.makeCurrentWindow without setting option rgfw_opengl", .{});
             return;
         }
         c.RGFW_window_makeCurrentWindow_OpenGL(cWindow(win));
@@ -2204,7 +2220,7 @@ pub const opengl = struct {
     /// Make the window's OpenGL context current (or null to detach).
     pub fn makeCurrentContext(win: ?*Window) void {
         if (comptime !opts.rgfw_opengl) {
-            std.log.warn("Attempt to use function rgfw.opengl.makeCurrentContext without setting option rgfw_opengl", .{});
+            warn("Attempt to use function rgfw.opengl.makeCurrentContext without setting option rgfw_opengl", .{});
             return;
         }
         c.RGFW_window_makeCurrentContext_OpenGL(if (win) |w| cWindow(w) else null);
@@ -2213,7 +2229,7 @@ pub const opengl = struct {
     /// Swap the front and back OpenGL buffers for the window.
     pub fn swapBuffers(win: *Window) void {
         if (comptime !opts.rgfw_opengl) {
-            std.log.warn("Attempt to use function rgfw.opengl.swapBuffers without setting option rgfw_opengl", .{});
+            warn("Attempt to use function rgfw.opengl.swapBuffers without setting option rgfw_opengl", .{});
             return;
         }
         c.RGFW_window_swapBuffers_OpenGL(cWindow(win));
@@ -2222,7 +2238,7 @@ pub const opengl = struct {
     /// Set the OpenGL swap interval (VSync). 0 = off, 1 = on.
     pub fn swapInterval(win: *Window, interval: i32) void {
         if (comptime !opts.rgfw_opengl) {
-            std.log.warn("Attempt to use function rgfw.opengl.swapInterval without setting option rgfw_opengl", .{});
+            warn("Attempt to use function rgfw.opengl.swapInterval without setting option rgfw_opengl", .{});
             return;
         }
         c.RGFW_window_swapInterval_OpenGL(cWindow(win), interval);
@@ -2231,7 +2247,7 @@ pub const opengl = struct {
     /// Get the currently active OpenGL context handle.
     pub fn getCurrentContext() ?*anyopaque {
         if (comptime !opts.rgfw_opengl) {
-            std.log.warn("Attempt to use function rgfw.opengl.getCurrentContext without setting option rgfw_opengl", .{});
+            warn("Attempt to use function rgfw.opengl.getCurrentContext without setting option rgfw_opengl", .{});
             return null;
         }
         return c.RGFW_getCurrentContext_OpenGL();
@@ -2240,7 +2256,7 @@ pub const opengl = struct {
     /// Get the window that owns the currently active OpenGL context.
     pub fn getCurrentWindow() ?*Window {
         if (comptime !opts.rgfw_opengl) {
-            std.log.warn("Attempt to use function rgfw.opengl.getCurrentWindow without setting option rgfw_opengl", .{});
+            warn("Attempt to use function rgfw.opengl.getCurrentWindow without setting option rgfw_opengl", .{});
             return null;
         }
         return zigWindow(c.RGFW_getCurrentWindow_OpenGL());
@@ -2249,7 +2265,7 @@ pub const opengl = struct {
     /// Get a native OpenGL function pointer by name.
     pub fn getProcAddress(procname: [:0]const u8) Proc {
         if (comptime !opts.rgfw_opengl) {
-            std.log.warn("Attempt to use function rgfw.opengl.getProcAddress without setting option rgfw_opengl", .{});
+            warn("Attempt to use function rgfw.opengl.getProcAddress without setting option rgfw_opengl", .{});
             return @as(Proc, undefined);
         }
         return c.RGFW_getProcAddress_OpenGL(procname.ptr);
@@ -2258,7 +2274,7 @@ pub const opengl = struct {
     /// Check if an OpenGL extension is supported in the current context.
     pub fn extensionSupported(extension: []const u8) bool {
         if (comptime !opts.rgfw_opengl) {
-            std.log.warn("Attempt to use function rgfw.opengl.extensionSupported without setting option rgfw_opengl", .{});
+            warn("Attempt to use function rgfw.opengl.extensionSupported without setting option rgfw_opengl", .{});
             return false;
         }
         return boolFromC(c.RGFW_extensionSupported_OpenGL(extension.ptr, extension.len));
@@ -2267,7 +2283,7 @@ pub const opengl = struct {
     /// Check if a platform-specific OpenGL extension is supported.
     pub fn extensionSupportedPlatform(extension: []const u8) bool {
         if (comptime !opts.rgfw_opengl) {
-            std.log.warn("Attempt to use function rgfw.opengl.extensionSupportedPlatform without setting option rgfw_opengl", .{});
+            warn("Attempt to use function rgfw.opengl.extensionSupportedPlatform without setting option rgfw_opengl", .{});
             return false;
         }
         return boolFromC(c.RGFW_extensionSupportedPlatform_OpenGL(extension.ptr, extension.len));
@@ -2280,7 +2296,7 @@ pub const egl = struct {
     /// Create and allocate a new EGL context for a window.
     pub fn createContext(win: *Window, hints: ?*GlHints) ?*EglContext {
         if (comptime !opts.rgfw_egl) {
-            std.log.warn("Attempt to use function rgfw.egl.createContext without setting option rgfw_egl", .{});
+            warn("Attempt to use function rgfw.egl.createContext without setting option rgfw_egl", .{});
             return null;
         }
         const ctx = c.RGFW_window_createContext_EGL(cWindow(win), if (hints) |h| ptrCast(*c.RGFW_glHints, h) else null);
@@ -2290,7 +2306,7 @@ pub const egl = struct {
     /// Create an EGL context using a pre-allocated `EglContext` structure.
     pub fn createContextPtr(win: *Window, ctx: *EglContext, hints: ?*GlHints) bool {
         if (comptime !opts.rgfw_egl) {
-            std.log.warn("Attempt to use function rgfw.egl.createContextPtr without setting option rgfw_egl", .{});
+            warn("Attempt to use function rgfw.egl.createContextPtr without setting option rgfw_egl", .{});
             return false;
         }
         return boolFromC(c.RGFW_window_createContextPtr_EGL(cWindow(win), cEglContext(ctx), if (hints) |h| ptrCast(*c.RGFW_glHints, h) else null));
@@ -2299,7 +2315,7 @@ pub const egl = struct {
     /// Delete and free an EGL context.
     pub fn deleteContext(win: *Window, ctx: *EglContext) void {
         if (comptime !opts.rgfw_egl) {
-            std.log.warn("Attempt to use function rgfw.egl.deleteContext without setting option rgfw_egl", .{});
+            warn("Attempt to use function rgfw.egl.deleteContext without setting option rgfw_egl", .{});
             return;
         }
         c.RGFW_window_deleteContext_EGL(cWindow(win), cEglContext(ctx));
@@ -2308,7 +2324,7 @@ pub const egl = struct {
     /// Delete an EGL context without freeing its memory.
     pub fn deleteContextPtr(win: *Window, ctx: *EglContext) void {
         if (comptime !opts.rgfw_egl) {
-            std.log.warn("Attempt to use function rgfw.egl.deleteContextPtr without setting option rgfw_egl", .{});
+            warn("Attempt to use function rgfw.egl.deleteContextPtr without setting option rgfw_egl", .{});
             return;
         }
         c.RGFW_window_deleteContextPtr_EGL(cWindow(win), cEglContext(ctx));
@@ -2317,7 +2333,7 @@ pub const egl = struct {
     /// Get the EGL context associated with a window.
     pub fn getContext(win: *Window) ?*EglContext {
         if (comptime !opts.rgfw_egl) {
-            std.log.warn("Attempt to use function rgfw.egl.getContext without setting option rgfw_egl", .{});
+            warn("Attempt to use function rgfw.egl.getContext without setting option rgfw_egl", .{});
             return null;
         }
         return zigEglContext(c.RGFW_window_getContext_EGL(cWindow(win)));
@@ -2326,7 +2342,7 @@ pub const egl = struct {
     /// Get the EGL display handle.
     pub fn getDisplay() ?*anyopaque {
         if (comptime !opts.rgfw_egl) {
-            std.log.warn("Attempt to use function rgfw.egl.getDisplay without setting option rgfw_egl", .{});
+            warn("Attempt to use function rgfw.egl.getDisplay without setting option rgfw_egl", .{});
             return null;
         }
         return c.RGFW_getDisplay_EGL();
@@ -2335,7 +2351,7 @@ pub const egl = struct {
     /// Get the underlying native EGL context handle.
     pub fn contextGetSourceContext(ctx: *EglContext) ?*anyopaque {
         if (comptime !opts.rgfw_egl) {
-            std.log.warn("Attempt to use function rgfw.egl.contextGetSourceContext without setting option rgfw_egl", .{});
+            warn("Attempt to use function rgfw.egl.contextGetSourceContext without setting option rgfw_egl", .{});
             return null;
         }
         return c.RGFW_eglContext_getSourceContext(cEglContext(ctx));
@@ -2344,7 +2360,7 @@ pub const egl = struct {
     /// Get the EGL surface associated with a context.
     pub fn contextGetSurface(ctx: *EglContext) ?*anyopaque {
         if (comptime !opts.rgfw_egl) {
-            std.log.warn("Attempt to use function rgfw.egl.contextGetSurface without setting option rgfw_egl", .{});
+            warn("Attempt to use function rgfw.egl.contextGetSurface without setting option rgfw_egl", .{});
             return null;
         }
         return c.RGFW_eglContext_getSurface(cEglContext(ctx));
@@ -2353,7 +2369,7 @@ pub const egl = struct {
     /// Get the Wayland EGL window handle (Wayland only).
     pub fn contextWlEglWindow(ctx: *EglContext) ?*WlEglWindow {
         if (comptime !opts.rgfw_egl) {
-            std.log.warn("Attempt to use function rgfw.egl.contextWlEglWindow without setting option rgfw_egl", .{});
+            warn("Attempt to use function rgfw.egl.contextWlEglWindow without setting option rgfw_egl", .{});
             return null;
         }
         const win = c.RGFW_eglContext_wlEGLWindow(cEglContext(ctx));
@@ -2363,7 +2379,7 @@ pub const egl = struct {
     /// Swap the EGL buffers for a window.
     pub fn swapBuffers(win: *Window) void {
         if (comptime !opts.rgfw_egl) {
-            std.log.warn("Attempt to use function rgfw.egl.swapBuffers without setting option rgfw_egl", .{});
+            warn("Attempt to use function rgfw.egl.swapBuffers without setting option rgfw_egl", .{});
             return;
         }
         c.RGFW_window_swapBuffers_EGL(cWindow(win));
@@ -2372,7 +2388,7 @@ pub const egl = struct {
     /// Make the window the current EGL rendering target.
     pub fn makeCurrentWindow(win: *Window) void {
         if (comptime !opts.rgfw_egl) {
-            std.log.warn("Attempt to use function rgfw.egl.makeCurrentWindow without setting option rgfw_egl", .{});
+            warn("Attempt to use function rgfw.egl.makeCurrentWindow without setting option rgfw_egl", .{});
             return;
         }
         c.RGFW_window_makeCurrentWindow_EGL(cWindow(win));
@@ -2381,7 +2397,7 @@ pub const egl = struct {
     /// Make the window's EGL context current (or null to detach).
     pub fn makeCurrentContext(win: ?*Window) void {
         if (comptime !opts.rgfw_egl) {
-            std.log.warn("Attempt to use function rgfw.egl.makeCurrentContext without setting option rgfw_egl", .{});
+            warn("Attempt to use function rgfw.egl.makeCurrentContext without setting option rgfw_egl", .{});
             return;
         }
         c.RGFW_window_makeCurrentContext_EGL(if (win) |w| cWindow(w) else null);
@@ -2390,7 +2406,7 @@ pub const egl = struct {
     /// Get the currently active EGL context handle.
     pub fn getCurrentContext() ?*anyopaque {
         if (comptime !opts.rgfw_egl) {
-            std.log.warn("Attempt to use function rgfw.egl.getCurrentContext without setting option rgfw_egl", .{});
+            warn("Attempt to use function rgfw.egl.getCurrentContext without setting option rgfw_egl", .{});
             return null;
         }
         return c.RGFW_getCurrentContext_EGL();
@@ -2399,7 +2415,7 @@ pub const egl = struct {
     /// Get the window that owns the currently active EGL context.
     pub fn getCurrentWindow() ?*Window {
         if (comptime !opts.rgfw_egl) {
-            std.log.warn("Attempt to use function rgfw.egl.getCurrentWindow without setting option rgfw_egl", .{});
+            warn("Attempt to use function rgfw.egl.getCurrentWindow without setting option rgfw_egl", .{});
             return null;
         }
         return zigWindow(c.RGFW_getCurrentWindow_EGL());
@@ -2408,7 +2424,7 @@ pub const egl = struct {
     /// Set the EGL swap interval (VSync). 0 = off, 1 = on.
     pub fn swapInterval(win: *Window, interval: i32) void {
         if (comptime !opts.rgfw_egl) {
-            std.log.warn("Attempt to use function rgfw.egl.swapInterval without setting option rgfw_egl", .{});
+            warn("Attempt to use function rgfw.egl.swapInterval without setting option rgfw_egl", .{});
             return;
         }
         c.RGFW_window_swapInterval_EGL(cWindow(win), interval);
@@ -2417,7 +2433,7 @@ pub const egl = struct {
     /// Get a native OpenGL/ES function pointer via EGL.
     pub fn getProcAddress(procname: [:0]const u8) Proc {
         if (comptime !opts.rgfw_egl) {
-            std.log.warn("Attempt to use function rgfw.egl.getProcAddress without setting option rgfw_egl", .{});
+            warn("Attempt to use function rgfw.egl.getProcAddress without setting option rgfw_egl", .{});
             return @as(Proc, undefined);
         }
         return c.RGFW_getProcAddress_EGL(procname.ptr);
@@ -2426,7 +2442,7 @@ pub const egl = struct {
     /// Check if an OpenGL/ES extension is supported in the current EGL context.
     pub fn extensionSupported(extension: []const u8) bool {
         if (comptime !opts.rgfw_egl) {
-            std.log.warn("Attempt to use function rgfw.egl.extensionSupported without setting option rgfw_egl", .{});
+            warn("Attempt to use function rgfw.egl.extensionSupported without setting option rgfw_egl", .{});
             return false;
         }
         return boolFromC(c.RGFW_extensionSupported_EGL(extension.ptr, extension.len));
@@ -2435,7 +2451,7 @@ pub const egl = struct {
     /// Check if a platform-dependent EGL extension is supported.
     pub fn extensionSupportedPlatform(extension: []const u8) bool {
         if (comptime !opts.rgfw_egl) {
-            std.log.warn("Attempt to use function rgfw.egl.extensionSupportedPlatform without setting option rgfw_egl", .{});
+            warn("Attempt to use function rgfw.egl.extensionSupportedPlatform without setting option rgfw_egl", .{});
             return false;
         }
         return boolFromC(c.RGFW_extensionSupportedPlatform_EGL(extension.ptr, extension.len));
@@ -2448,7 +2464,7 @@ pub const vulkan = struct {
     /// Get a Vulkan function pointer via `vkGetInstanceProcAddr`.
     pub fn getInstanceProcAddress(instance: ?*anyopaque, procname: [:0]const u8) Proc {
         if (comptime !opts.rgfw_vulkan) {
-            std.log.warn("Attempt to use function rgfw.vulkan.getInstanceProcAddress without setting option rgfw_vulkan", .{});
+            warn("Attempt to use function rgfw.vulkan.getInstanceProcAddress without setting option rgfw_vulkan", .{});
             return @as(Proc, undefined);
         }
         return c.RGFW_getInstanceProcAddress_Vulkan(@ptrCast(instance), procname.ptr);
@@ -2457,7 +2473,7 @@ pub const vulkan = struct {
     /// Get the list of required Vulkan instance extensions for RGFW.
     pub fn getRequiredInstanceExtensions() Error![]const [*:0]const u8 {
         if (comptime !opts.rgfw_vulkan) {
-            std.log.warn("Attempt to use function rgfw.vulkan.getRequiredInstanceExtensions without setting option rgfw_vulkan", .{});
+            warn("Attempt to use function rgfw.vulkan.getRequiredInstanceExtensions without setting option rgfw_vulkan", .{});
             return Error.NullPointer;
         }
         var count: usize = 0;
@@ -2469,7 +2485,7 @@ pub const vulkan = struct {
     /// Create a Vulkan surface for a window.
     pub fn createSurface(win: *Window, instance: ?*anyopaque, surface_ptr: *anyopaque) i32 {
         if (comptime !opts.rgfw_vulkan) {
-            std.log.warn("Attempt to use function rgfw.vulkan.createSurface without setting option rgfw_vulkan", .{});
+            warn("Attempt to use function rgfw.vulkan.createSurface without setting option rgfw_vulkan", .{});
             return -1;
         }
         return @intCast(c.RGFW_window_createSurface_Vulkan(cWindow(win), @ptrCast(instance), @ptrCast(@alignCast(surface_ptr))));
@@ -2478,7 +2494,7 @@ pub const vulkan = struct {
     /// Check if a Vulkan physical device and queue family support window presentation.
     pub fn getPhysicalDevicePresentationSupport(instance: ?*anyopaque, physical_device: ?*anyopaque, queue_family_index: u32) bool {
         if (comptime !opts.rgfw_vulkan) {
-            std.log.warn("Attempt to use function rgfw.vulkan.getPhysicalDevicePresentationSupport without setting option rgfw_vulkan", .{});
+            warn("Attempt to use function rgfw.vulkan.getPhysicalDevicePresentationSupport without setting option rgfw_vulkan", .{});
             return false;
         }
         return boolFromC(c.RGFW_getPhysicalDevicePresentationSupport_Vulkan(@ptrCast(instance), @ptrCast(physical_device), @intCast(queue_family_index)));
@@ -2491,7 +2507,7 @@ pub const directx = struct {
     /// Create a DirectX swap chain for the given window.
     pub fn createSwapChain(win: *Window, factory: *DxgiFactory, device: *Unknown, swapchain: **DxgiSwapChain) i32 {
         if (comptime !opts.rgfw_directx) {
-            std.log.warn("Attempt to use function rgfw.directx.createSwapChain without setting option rgfw_directx", .{});
+            warn("Attempt to use function rgfw.directx.createSwapChain without setting option rgfw_directx", .{});
             return -1;
         }
         return @intCast(c.RGFW_window_createSwapChain_DirectX(
@@ -2509,7 +2525,7 @@ pub const webgpu = struct {
     /// Create a WebGPU surface for the given window.
     pub fn createSurface(win: *Window, instance: *anyopaque) ?*anyopaque {
         if (comptime !opts.rgfw_webgpu) {
-            std.log.warn("Attempt to use function rgfw.webgpu.createSurface without setting option rgfw_webgpu", .{});
+            warn("Attempt to use function rgfw.webgpu.createSurface without setting option rgfw_webgpu", .{});
             return null;
         }
         return c.RGFW_window_createSurface_WebGPU(cWindow(win), @ptrCast(instance));
@@ -2542,7 +2558,7 @@ pub const platform = struct {
     /// Initialize the X11 platform backend directly.
     pub fn initX11(class_name: ?[:0]const u8, flags: InitFlags) i32 {
         if (comptime !opts.rgfw_x11) {
-            std.log.warn("Attempt to use function rgfw.platform.initX11 without setting option rgfw_x11", .{});
+            warn("Attempt to use function rgfw.platform.initX11 without setting option rgfw_x11", .{});
             return -1;
         }
         return @intCast(RGFW_initPlatform_X11(@ptrCast(@constCast(optionalCString(class_name))), @as(u8, @bitCast(flags))));
@@ -2551,7 +2567,7 @@ pub const platform = struct {
     /// Deinitialize the X11 platform backend.
     pub fn deinitX11() void {
         if (comptime !opts.rgfw_x11) {
-            std.log.warn("Attempt to use function rgfw.platform.deinitX11 without setting option rgfw_x11", .{});
+            warn("Attempt to use function rgfw.platform.deinitX11 without setting option rgfw_x11", .{});
             return;
         }
         RGFW_deinitPlatform_X11();
@@ -2560,7 +2576,7 @@ pub const platform = struct {
     /// Initialize the Wayland platform backend directly.
     pub fn initWayland(class_name: ?[:0]const u8, flags: InitFlags) i32 {
         if (comptime !opts.rgfw_wayland) {
-            std.log.warn("Attempt to use function rgfw.platform.initWayland without setting option rgfw_wayland", .{});
+            warn("Attempt to use function rgfw.platform.initWayland without setting option rgfw_wayland", .{});
             return -1;
         }
         return @intCast(RGFW_initPlatform_Wayland(@ptrCast(@constCast(optionalCString(class_name))), @as(u8, @bitCast(flags))));
@@ -2569,7 +2585,7 @@ pub const platform = struct {
     /// Deinitialize the Wayland platform backend.
     pub fn deinitWayland() void {
         if (comptime !opts.rgfw_wayland) {
-            std.log.warn("Attempt to use function rgfw.platform.deinitWayland without setting option rgfw_wayland", .{});
+            warn("Attempt to use function rgfw.platform.deinitWayland without setting option rgfw_wayland", .{});
             return;
         }
         RGFW_deinitPlatform_Wayland();
@@ -2578,7 +2594,7 @@ pub const platform = struct {
     /// Load the X11 shared library functions.
     pub fn loadX11() void {
         if (comptime !opts.rgfw_x11) {
-            std.log.warn("Attempt to use function rgfw.platform.loadX11 without setting option rgfw_x11", .{});
+            warn("Attempt to use function rgfw.platform.loadX11 without setting option rgfw_x11", .{});
             return;
         }
         RGFW_load_X11();
@@ -2587,7 +2603,7 @@ pub const platform = struct {
     /// Load the Wayland shared library functions.
     pub fn loadWayland() void {
         if (comptime !opts.rgfw_wayland) {
-            std.log.warn("Attempt to use function rgfw.platform.loadWayland without setting option rgfw_wayland", .{});
+            warn("Attempt to use function rgfw.platform.loadWayland without setting option rgfw_wayland", .{});
             return;
         }
         RGFW_load_Wayland();
@@ -2596,7 +2612,7 @@ pub const platform = struct {
     /// Get the current time in nanoseconds (Unix only).
     pub fn unixGetTimeNs() u64 {
         if (comptime !opts.rgfw_unix) {
-            std.log.warn("Attempt to use function rgfw.platform.unixGetTimeNs without setting option rgfw_unix", .{});
+            warn("Attempt to use function rgfw.platform.unixGetTimeNs without setting option rgfw_unix", .{});
             return 0;
         }
         return @intCast(RGFW_unix_getTimeNS());
@@ -2605,7 +2621,7 @@ pub const platform = struct {
     /// Get the length of a C string (Unix helper).
     pub fn unixStringLen(name: [:0]const u8) usize {
         if (comptime !opts.rgfw_unix) {
-            std.log.warn("Attempt to use function rgfw.platform.unixStringLen without setting option rgfw_unix", .{});
+            warn("Attempt to use function rgfw.platform.unixStringLen without setting option rgfw_unix", .{});
             return 0;
         }
         return RGFW_unix_stringlen(name.ptr);
@@ -2614,7 +2630,7 @@ pub const platform = struct {
     /// Wait for the X11 window to be shown/mapped (X11 only).
     pub fn waitForShowEventX11(win: *Window) bool {
         if (comptime !opts.rgfw_x11) {
-            std.log.warn("Attempt to use function rgfw.platform.waitForShowEventX11 without setting option rgfw_x11", .{});
+            warn("Attempt to use function rgfw.platform.waitForShowEventX11 without setting option rgfw_x11", .{});
             return false;
         }
         return boolFromC(RGFW_waitForShowEvent_X11(cWindow(win)));
@@ -2623,7 +2639,7 @@ pub const platform = struct {
     /// Get the dark mode state from the Windows registry (Windows only).
     pub fn win32GetDarkModeState() bool {
         if (comptime !opts.rgfw_windows) {
-            std.log.warn("Attempt to use function rgfw.platform.win32GetDarkModeState without setting option rgfw_windows", .{});
+            warn("Attempt to use function rgfw.platform.win32GetDarkModeState without setting option rgfw_windows", .{});
             return false;
         }
         return boolFromC(RGFW_win32_getDarkModeState());
@@ -2632,7 +2648,7 @@ pub const platform = struct {
     /// Apply or remove dark mode for a window (Windows only, requires DWM).
     pub fn win32MakeWindowDarkMode(win: *Window, state: bool) void {
         if (comptime !opts.rgfw_windows) {
-            std.log.warn("Attempt to use function rgfw.platform.win32MakeWindowDarkMode without setting option rgfw_windows", .{});
+            warn("Attempt to use function rgfw.platform.win32MakeWindowDarkMode without setting option rgfw_windows", .{});
             return;
         }
         RGFW_win32_makeWindowDarkMode(cWindow(win), boolToC(state));
@@ -2641,7 +2657,7 @@ pub const platform = struct {
     /// Extract monitor mode info from a Win32 DEVMODE (Windows only).
     pub fn win32GetMode(dev_mode: *anyopaque, mode: *MonitorMode) void {
         if (comptime !opts.rgfw_windows) {
-            std.log.warn("Attempt to use function rgfw.platform.win32GetMode without setting option rgfw_windows", .{});
+            warn("Attempt to use function rgfw.platform.win32GetMode without setting option rgfw_windows", .{});
             return;
         }
         RGFW_win32_getMode(@ptrCast(dev_mode), cMonitorMode(mode));
@@ -2650,7 +2666,7 @@ pub const platform = struct {
     /// Create a monitor from Win32 adapter and display device names (Windows only).
     pub fn win32CreateMonitor(adapter: *anyopaque, display_device: *anyopaque) void {
         if (comptime !opts.rgfw_windows) {
-            std.log.warn("Attempt to use function rgfw.platform.win32CreateMonitor without setting option rgfw_windows", .{});
+            warn("Attempt to use function rgfw.platform.win32CreateMonitor without setting option rgfw_windows", .{});
             return;
         }
         RGFW_win32_createMonitor(@ptrCast(adapter), @ptrCast(display_device));
@@ -2659,7 +2675,7 @@ pub const platform = struct {
     /// Transform a Y coordinate between Cocoa and RGFW conventions (macOS only).
     pub fn cocoaYTransform(y: f32) f32 {
         if (comptime !opts.rgfw_macos) {
-            std.log.warn("Attempt to use function rgfw.platform.cocoaYTransform without setting option rgfw_macos", .{});
+            warn("Attempt to use function rgfw.platform.cocoaYTransform without setting option rgfw_macos", .{});
             return y;
         }
         return @floatFromInt(RGFW_cocoaYTransform(@intFromFloat(y)));
@@ -2672,7 +2688,7 @@ pub const internals = struct {
     /// Initialize an attribute stack for OpenGL context creation.
     pub fn attribStackInit(stack: *AttribStack, attribs: []i32) void {
         if (comptime !opts.rgfw_opengl and !opts.rgfw_egl) {
-            std.log.warn("Attempt to use function rgfw.internals.attribStackInit without setting option rgfw_opengl or rgfw_egl", .{});
+            warn("Attempt to use function rgfw.internals.attribStackInit without setting option rgfw_opengl or rgfw_egl", .{});
             return;
         }
         RGFW_attribStack_init(@ptrCast(stack), attribs.ptr, attribs.len);
@@ -2681,7 +2697,7 @@ pub const internals = struct {
     /// Push a single attribute onto the attribute stack.
     pub fn attribStackPushAttrib(stack: *AttribStack, attrib: i32) void {
         if (comptime !opts.rgfw_opengl and !opts.rgfw_egl) {
-            std.log.warn("Attempt to use function rgfw.internals.attribStackPushAttrib without setting option rgfw_opengl or rgfw_egl", .{});
+            warn("Attempt to use function rgfw.internals.attribStackPushAttrib without setting option rgfw_opengl or rgfw_egl", .{});
             return;
         }
         RGFW_attribStack_pushAttrib(@ptrCast(stack), attrib);
@@ -2690,7 +2706,7 @@ pub const internals = struct {
     /// Push a key-value attribute pair onto the attribute stack.
     pub fn attribStackPushAttribs(stack: *AttribStack, attrib1: i32, attrib2: i32) void {
         if (comptime !opts.rgfw_opengl and !opts.rgfw_egl) {
-            std.log.warn("Attempt to use function rgfw.internals.attribStackPushAttribs without setting option rgfw_opengl or rgfw_egl", .{});
+            warn("Attempt to use function rgfw.internals.attribStackPushAttribs without setting option rgfw_opengl or rgfw_egl", .{});
             return;
         }
         RGFW_attribStack_pushAttribs(@ptrCast(stack), attrib1, attrib2);
@@ -2911,7 +2927,7 @@ pub const native = struct {
     /// Initialize the macOS NSView for a window (macOS only).
     pub fn osxInitView(win: *Window) void {
         if (comptime !opts.rgfw_macos) {
-            std.log.warn("Attempt to use function rgfw.native.osxInitView without setting option rgfw_macos", .{});
+            warn("Attempt to use function rgfw.native.osxInitView without setting option rgfw_macos", .{});
             return;
         }
         RGFW_osx_initView(cWindow(win));
@@ -2920,7 +2936,7 @@ pub const native = struct {
     /// Get the NSScreen for a given CGDirectDisplayID (macOS only).
     pub fn getNSScreenForDisplayUInt(display_id: u32) ?*anyopaque {
         if (comptime !opts.rgfw_macos) {
-            std.log.warn("Attempt to use function rgfw.native.getNSScreenForDisplayUInt without setting option rgfw_macos", .{});
+            warn("Attempt to use function rgfw.native.getNSScreenForDisplayUInt without setting option rgfw_macos", .{});
             return null;
         }
         return RGFW_getNSScreenForDisplayUInt(display_id);
@@ -2929,7 +2945,7 @@ pub const native = struct {
     /// Parse a dropped URI list into file paths and call the data drop callback (Unix only).
     pub fn unixParseUri(win: *Window, data: [:0]u8) void {
         if (comptime !opts.rgfw_unix) {
-            std.log.warn("Attempt to use function rgfw.native.unixParseUri without setting option rgfw_unix", .{});
+            warn("Attempt to use function rgfw.native.unixParseUri without setting option rgfw_unix", .{});
             return;
         }
         RGFW_unix_parseURI(cWindow(win), data.ptr);
@@ -2938,7 +2954,7 @@ pub const native = struct {
     /// Get the Win32 window style flags for the given RGFW flags (Windows only).
     pub fn winapiWindowGetStyle(win: *Window, flags: WindowFlags) u32 {
         if (comptime !opts.rgfw_windows) {
-            std.log.warn("Attempt to use function rgfw.native.winapiWindowGetStyle without setting option rgfw_windows", .{});
+            warn("Attempt to use function rgfw.native.winapiWindowGetStyle without setting option rgfw_windows", .{});
             return 0;
         }
         return @intCast(RGFW_winapi_window_getStyle(cWindow(win), @as(u32, @bitCast(flags))));
@@ -2947,7 +2963,7 @@ pub const native = struct {
     /// Get the Win32 extended window style flags (Windows only).
     pub fn winapiWindowGetExStyle(win: *Window, flags: WindowFlags) u32 {
         if (comptime !opts.rgfw_windows) {
-            std.log.warn("Attempt to use function rgfw.native.winapiWindowGetExStyle without setting option rgfw_windows", .{});
+            warn("Attempt to use function rgfw.native.winapiWindowGetExStyle without setting option rgfw_windows", .{});
             return 0;
         }
         return @intCast(RGFW_winapi_window_getExStyle(cWindow(win), @as(u32, @bitCast(flags))));
@@ -2956,7 +2972,7 @@ pub const native = struct {
     /// Get the system content DPI via X11 XResources (X11 only).
     pub fn xGetSystemContentDpi() f32 {
         if (comptime !opts.rgfw_x11) {
-            std.log.warn("Attempt to use function rgfw.native.xGetSystemContentDpi without setting option rgfw_x11", .{});
+            warn("Attempt to use function rgfw.native.xGetSystemContentDpi without setting option rgfw_x11", .{});
             return 0;
         }
         var dpi: f32 = 0;
@@ -2967,7 +2983,7 @@ pub const native = struct {
     /// Handle an X11 clipboard selection request event (X11 only).
     pub fn xHandleClipboardSelection(event: *anyopaque) void {
         if (comptime !opts.rgfw_x11) {
-            std.log.warn("Attempt to use function rgfw.native.xHandleClipboardSelection without setting option rgfw_x11", .{});
+            warn("Attempt to use function rgfw.native.xHandleClipboardSelection without setting option rgfw_x11", .{});
             return;
         }
         RGFW_XHandleClipboardSelection(@ptrCast(event));
@@ -2976,7 +2992,7 @@ pub const native = struct {
     /// Process a single X11 event from the display queue (X11 only).
     pub fn xHandleEvent() void {
         if (comptime !opts.rgfw_x11) {
-            std.log.warn("Attempt to use function rgfw.native.xHandleEvent without setting option rgfw_x11", .{});
+            warn("Attempt to use function rgfw.native.xHandleEvent without setting option rgfw_x11", .{});
             return;
         }
         RGFW_XHandleEvent();
@@ -2985,7 +3001,7 @@ pub const native = struct {
     /// Determine the RGFW pixel format from an X11 XImage (X11 only).
     pub fn xImageGetFormat(image: *anyopaque) Format {
         if (comptime !opts.rgfw_x11) {
-            std.log.warn("Attempt to use function rgfw.native.xImageGetFormat without setting option rgfw_x11", .{});
+            warn("Attempt to use function rgfw.native.xImageGetFormat without setting option rgfw_x11", .{});
             return .rgb8;
         }
         return @enumFromInt(RGFW_XImage_getFormat(@ptrCast(image)));
@@ -2994,7 +3010,7 @@ pub const native = struct {
     /// Custom X11 error handler (X11 only).
     pub fn xErrorHandler(display: *anyopaque, event: *anyopaque) i32 {
         if (comptime !opts.rgfw_x11) {
-            std.log.warn("Attempt to use function rgfw.native.xErrorHandler without setting option rgfw_x11", .{});
+            warn("Attempt to use function rgfw.native.xErrorHandler without setting option rgfw_x11", .{});
             return 0;
         }
         return @intCast(RGFW_XErrorHandler(@ptrCast(display), @ptrCast(event)));
@@ -3003,7 +3019,7 @@ pub const native = struct {
     /// X11 input method context destruction callback (X11 only).
     pub fn x11IcCallback(ic: *anyopaque, client_data: [*:0]u8, call_data: [*:0]u8) void {
         if (comptime !opts.rgfw_x11) {
-            std.log.warn("Attempt to use function rgfw.native.x11IcCallback without setting option rgfw_x11", .{});
+            warn("Attempt to use function rgfw.native.x11IcCallback without setting option rgfw_x11", .{});
             return;
         }
         RGFW_x11_icCallback(@ptrCast(ic), client_data, call_data);
@@ -3012,7 +3028,7 @@ pub const native = struct {
     /// X11 input method destruction callback (X11 only).
     pub fn x11ImCallback(im: *anyopaque, client_data: [*:0]u8, call_data: [*:0]u8) void {
         if (comptime !opts.rgfw_x11) {
-            std.log.warn("Attempt to use function rgfw.native.x11ImCallback without setting option rgfw_x11", .{});
+            warn("Attempt to use function rgfw.native.x11ImCallback without setting option rgfw_x11", .{});
             return;
         }
         RGFW_x11_imCallback(@ptrCast(im), client_data, call_data);
@@ -3021,7 +3037,7 @@ pub const native = struct {
     /// X11 input method instantiation callback (X11 only).
     pub fn x11ImInitCallback(display: *anyopaque, client_data: *anyopaque, call_data: *anyopaque) void {
         if (comptime !opts.rgfw_x11) {
-            std.log.warn("Attempt to use function rgfw.native.x11ImInitCallback without setting option rgfw_x11", .{});
+            warn("Attempt to use function rgfw.native.x11ImInitCallback without setting option rgfw_x11", .{});
             return;
         }
         RGFW_x11_imInitCallback(@ptrCast(display), @ptrCast(client_data), @ptrCast(call_data));
@@ -3030,7 +3046,7 @@ pub const native = struct {
     /// Get an X11 mode info structure by mode ID (X11 only).
     pub fn xGetMode(crtc_info: *anyopaque, resources: *anyopaque, mode_id: u64, found_mode: *MonitorMode) ?*anyopaque {
         if (comptime !opts.rgfw_x11) {
-            std.log.warn("Attempt to use function rgfw.native.xGetMode without setting option rgfw_x11", .{});
+            warn("Attempt to use function rgfw.native.xGetMode without setting option rgfw_x11", .{});
             return null;
         }
         return RGFW_XGetMode(@ptrCast(crtc_info), @ptrCast(resources), @intCast(mode_id), cMonitorMode(found_mode));
@@ -3039,7 +3055,7 @@ pub const native = struct {
     /// Get an X11 VisualInfo for window creation (X11 only).
     pub fn windowGetVisual(visual: *anyopaque, transparent: bool) void {
         if (comptime !opts.rgfw_x11) {
-            std.log.warn("Attempt to use function rgfw.native.windowGetVisual without setting option rgfw_x11", .{});
+            warn("Attempt to use function rgfw.native.windowGetVisual without setting option rgfw_x11", .{});
             return;
         }
         RGFW_window_getVisual(@ptrCast(visual), boolToC(transparent));
