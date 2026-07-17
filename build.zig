@@ -320,7 +320,7 @@ pub fn build(b: *std.Build) void {
 
     mod.addOptions("rgfw_options", rgfw_options);
     mod.addIncludePath(b.path("."));
-    mod.addCSourceFile(.{ .file = b.path("RGFW.c") });
+    mod.addCSourceFile(.{ .file = b.path("RGFW.c"), .flags = &.{"-Wno-nullability-completeness"} });
     if (target.result.os.tag != .emscripten) {
         if (target.result.os.tag == .windows) {
             mod.linkSystemLibrary("opengl32", .{});
