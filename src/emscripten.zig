@@ -140,13 +140,49 @@ pub fn createLogger(
     }.call;
 }
 
-pub fn panic(msg: []const u8, error_return_trace: ?*std.builtin.StackTrace, ret_addr: ?usize) noreturn {
+const EM_LOG_C_STACK: c_int = 1 << 3; // 8
+const EM_LOG_JS_STACK: c_int = 1 << 4; // 16
+const EM_LOG_DEMANGLE: c_int = 1 << 5; // 32 (deprecated)
+const EM_LOG_NO_PATHS: c_int = 1 << 6; // 64
+const EM_LOG_FUNC_PARAMS: c_int = 1 << 7; // 128
+
+extern fn emscripten_get_callstack(
+    flags: c_int,
+    out: ?[*]u8,
+    maxbytes: c_int,
+) c_int;
+
+pub fn panic(
+    msg: []const u8,
+    error_return_trace: ?*std.builtin.StackTrace,
+    ret_addr: ?usize,
+) noreturn {
     _ = error_return_trace;
     _ = ret_addr;
 
-    var buf: [1024]u8 = undefined;
-    const error_msg: [:0]u8 = std.fmt.bufPrintZ(&buf, "PANIC! {s}", .{msg}) catch unreachable;
-    emscripten_err(error_msg.ptr);
+    var out: [32 * 1024]u8 = [_]u8{0} ** (32 * 1024);
+
+    var writer: std.Io.Writer = .fixed(&out);
+
+    writer.print("PANIC! {s}\n\n", .{msg}) catch {};
+
+    const flags =
+        EM_LOG_JS_STACK |
+        EM_LOG_NO_PATHS;
+
+    const pos = writer.buffered().len;
+
+    if (pos < out.len) {
+        const dst = out[pos..];
+
+        _ = emscripten_get_callstack(
+            flags,
+            dst.ptr,
+            @intCast(dst.len),
+        );
+    }
+
+    emscripten_err(out[0..].ptr);
 
     while (true) {
         @breakpoint();
