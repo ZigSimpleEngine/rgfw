@@ -824,16 +824,16 @@ pub fn eventQueuePushAndCall(event: *const Event) void {
 pub const Event = extern union {
     type: EventType,
     common: CommonEvent,
-    focus: WindowFocusEvent,
-    update: WindowUpdateEvent,
-    button: MouseButtonEvent,
-    delta: MouseDeltaEvent,
-    mouse: MouseMotionEvent,
+    windowFocus: WindowFocusEvent,
+    windowUpdate: WindowUpdateEvent,
+    mouseButton: MouseButtonEvent,
+    mouseDelta: MouseDeltaEvent,
+    mouseMotion: MouseMotionEvent,
     key: KeyEvent,
     keyChar: KeyCharEvent,
-    drop: DataDropEvent,
-    drag: DataDragEvent,
-    scale: ScaleUpdatedEvent,
+    dataDrop: DataDropEvent,
+    dataDrag: DataDragEvent,
+    scaleUpdated: ScaleUpdatedEvent,
     monitor: MonitorEvent,
 
     pub fn format(
@@ -851,16 +851,16 @@ pub const Event = extern union {
 
             .mouseButtonPressed,
             .mouseButtonReleased,
-            => try writer.print("{}", .{self.button}),
+            => try writer.print("{}", .{self.mouseButton}),
 
             .mouseScroll,
             .mouseRawMotion,
-            => try writer.print("{}", .{self.delta}),
+            => try writer.print("{}", .{self.mouseDelta}),
 
             .mouseMotion,
             .mouseEnter,
             .mouseLeave,
-            => try writer.print("{}", .{self.mouse}),
+            => try writer.print("{}", .{self.mouseMotion}),
 
             .windowMoved,
             .windowResized,
@@ -869,17 +869,17 @@ pub const Event = extern union {
             .windowMaximized,
             .windowMinimized,
             .windowRestored,
-            => try writer.print("{}", .{self.update}),
+            => try writer.print("{}", .{self.windowUpdate}),
 
             .windowFocusIn,
             .windowFocusOut,
-            => try writer.print("{}", .{self.focus}),
+            => try writer.print("{}", .{self.windowFocus}),
 
-            .dataDrop => try writer.print("{}", .{self.drop}),
+            .dataDrop => try writer.print("{}", .{self.dataDrop}),
 
-            .dataDrag => try writer.print("{}", .{self.drag}),
+            .dataDrag => try writer.print("{}", .{self.dataDrag}),
 
-            .scaleUpdated => try writer.print("{}", .{self.scale}),
+            .scaleUpdated => try writer.print("{}", .{self.scaleUpdated}),
 
             .monitorConnected,
             .monitorDisconnected,
@@ -890,6 +890,20 @@ pub const Event = extern union {
     }
 
     pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
+
+    /// Type aliases for event substructures (without the `Event` suffix).
+    pub const Common = CommonEvent;
+    pub const WindowFocus = WindowFocusEvent;
+    pub const WindowUpdate = WindowUpdateEvent;
+    pub const MouseButton = MouseButtonEvent;
+    pub const MouseDelta = MouseDeltaEvent;
+    pub const MouseMotion = MouseMotionEvent;
+    pub const Key = KeyEvent;
+    pub const KeyChar = KeyCharEvent;
+    pub const DataDrop = DataDropEvent;
+    pub const DataDrag = DataDragEvent;
+    pub const ScaleUpdated = ScaleUpdatedEvent;
+    pub const Monitor = MonitorEvent;
 };
 
 extern fn RGFW_writeClipboard(data: *const DataTransfer) bool;
