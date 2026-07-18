@@ -227,6 +227,7 @@ test "module-level functions — alloc, free, init, deinit, etc." {
     _ = &rgfw.stopCheckEvents;
     _ = &rgfw.setQueueEvents;
     _ = &rgfw.setEventCallback;
+    _ = &rgfw.getEventCallback;
     _ = &rgfw.setDualEventCallback;
     _ = &rgfw.setAllEventCallbacks;
     _ = &rgfw.createWindow;
@@ -261,9 +262,10 @@ test "module-level functions — alloc, free, init, deinit, etc." {
 test "top-level extern type aliases" {
     _ = rgfw.Proc;
     _ = rgfw.ProcLoader;
-    _ = rgfw.GenericFunc;
-    _ = rgfw.DebugFunc;
-    _ = rgfw.ConvertImageDataFunc;
+    _ = rgfw.EventCallback;
+    _ = rgfw.DebugCallback;
+    _ = rgfw.ConvertCallback;
+    _ = rgfw.DebugInfo;
 }
 
 test "window.* functions" {
@@ -388,7 +390,9 @@ test "surface.* functions" {
     _ = &rgfw.surface.create;
     _ = &rgfw.surface.createPtr;
     _ = &rgfw.surface.getNativeImage;
-    _ = &rgfw.surface.setConvertFunc;
+    _ = &rgfw.surface.setConvertCallback;
+    _ = &rgfw.surface.getConvertCallback;
+    _ = &rgfw.surface.getConvert64Callback;
     _ = &rgfw.surface.free;
     _ = &rgfw.surface.freePtr;
     _ = &rgfw.surface.sizeof;
@@ -418,6 +422,7 @@ test "clipboard.* functions" {
 
 test "debug.* functions" {
     _ = &rgfw.debug.setCallback;
+    _ = &rgfw.debug.getCallback;
     _ = &rgfw.debug.callback;
 }
 

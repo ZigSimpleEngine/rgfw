@@ -903,8 +903,24 @@ pub const DataTransfer = extern struct {
     pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
     pub const writeClipboard = RGFW_writeClipboard;
 };
+/// Debug info structure passed to debug callbacks.
+pub const DebugInfo = extern struct {
+    type: DebugType,
+    code: ErrorCode,
+    msg: [*:0]const u8,
+    pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
+};
+
+/// Event callback (Zig calling convention).
+pub const EventCallback = *const fn (event: *const Event) void;
+/// Debug callback (Zig calling convention).
+pub const DebugCallback = *const fn (info: *const DebugInfo) void;
+/// Image conversion callback (Zig calling convention).
+pub const ConvertCallback = *const fn (dest: []u8, src: []u8, src_layout: *const ColorLayout, dest_layout: *const ColorLayout) void;
+
+/// (Internal) C-compatible function pointer for callbacks array.
 pub const genericFunc = ?*const fn (e: *const Event) callconv(.c) void;
-/// Holds an array of callback function pointers for every event type.
+/// (Internal) C-compatible callbacks struct for RGFW_setAllEventCallbacks.
 pub const Callbacks = extern struct {
     arr: [25]genericFunc = @import("std").mem.zeroes([25]genericFunc),
     pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
@@ -952,12 +968,6 @@ pub const AttribStack = extern struct {
 pub const Proc = c.RGFW_proc;
 /// Function pointer type for loading OpenGL/EGL/Vulkan procedures by name.
 pub const ProcLoader = *const fn ([:0]const u8) callconv(.c) Proc;
-/// Generic event callback function pointer.
-pub const GenericFunc = c.RGFW_genericFunc;
-/// Debug message callback function pointer.
-pub const DebugFunc = c.RGFW_debugFunc;
-/// Image data format conversion function pointer.
-pub const ConvertImageDataFunc = c.RGFW_convertImageDataFunc;
 
 /// Convert a Zig `bool` to a C `RGFW_bool` (u8: 0 or 1).
 fn boolToC(value: bool) c.RGFW_bool {
@@ -967,6 +977,54 @@ fn boolToC(value: bool) c.RGFW_bool {
 /// Convert a C `RGFW_bool` (u8) to a Zig `bool`.
 fn boolFromC(value: c.RGFW_bool) bool {
     return value != c.RGFW_FALSE;
+}
+
+/// Internal storage for Zig event callbacks.
+threadlocal var current_zig_callbacks: [@intFromEnum(EventType.count)]?EventCallback = [_]?EventCallback{null} ** @intFromEnum(EventType.count);
+/// Internal storage for Zig debug callback.
+threadlocal var current_debug_callback: ?DebugCallback = null;
+/// Internal storage for Zig convert callback (8-bit).
+threadlocal var current_convert_callback: ?ConvertCallback = null;
+/// Internal storage for Zig convert callback (16-bit).
+threadlocal var current_convert64_callback: ?ConvertCallback = null;
+
+/// Trampoline: C → Zig event callback.
+fn eventCallbackTrampoline(e: [*c]const c.RGFW_event) callconv(.c) void {
+    const event: *const Event = @ptrCast(e);
+    const idx = @as(usize, @intFromEnum(event.type));
+    if (idx < current_zig_callbacks.len) {
+        if (current_zig_callbacks[idx]) |cb| cb(event);
+    }
+}
+
+/// Trampoline: C → Zig debug callback.
+fn debugCallbackTrampoline(info: [*c]const c.RGFW_debugInfo) callconv(.c) void {
+    if (current_debug_callback) |cb| {
+        const zig_info = DebugInfo{
+            .type = @enumFromInt(info.*.type),
+            .code = @enumFromInt(info.*.code),
+            .msg = @ptrCast(info.*.msg),
+        };
+        cb(&zig_info);
+    }
+}
+
+/// Trampoline: C → Zig convert callback (8-bit, 1 byte per channel).
+fn convertTrampoline(dest_data: [*c]u8, src_data: [*c]u8, src_layout: [*c]const c.RGFW_colorLayout, dest_layout: [*c]const c.RGFW_colorLayout, count: usize) callconv(.c) void {
+    if (current_convert_callback) |cb| {
+        const channels = @as(usize, src_layout.*.channels);
+        const total = count * channels;
+        cb(dest_data[0..total], src_data[0..total], @ptrCast(src_layout), @ptrCast(dest_layout));
+    }
+}
+
+/// Trampoline: C → Zig convert callback (16-bit, 2 bytes per channel).
+fn convert64Trampoline(dest_data: [*c]u8, src_data: [*c]u8, src_layout: [*c]const c.RGFW_colorLayout, dest_layout: [*c]const c.RGFW_colorLayout, count: usize) callconv(.c) void {
+    if (current_convert64_callback) |cb| {
+        const channels = @as(usize, src_layout.*.channels);
+        const total = count * channels * 2;
+        cb(dest_data[0..total], src_data[0..total], @ptrCast(src_layout), @ptrCast(dest_layout));
+    }
 }
 
 /// Cast a pointer between two types (used for opaque handle conversions).
@@ -1153,14 +1211,16 @@ pub fn moveToMacOSResourceDir() void {
 
 /// Copy image data from `src` to `dest`, converting pixel formats as needed.
 /// If `func` is provided, it is used for the conversion; otherwise a default path is taken.
-pub fn copyImageData(dest: []u8, size: Size, dest_format: Format, src: []u8, src_format: Format, func: ConvertImageDataFunc) void {
-    c.RGFW_copyImageData(dest.ptr, size.w, size.h, @intFromEnum(dest_format), src.ptr, @intFromEnum(src_format), func);
+pub fn copyImageData(dest: []u8, size: Size, dest_format: Format, src: []u8, src_format: Format, func: ?ConvertCallback) void {
+    current_convert_callback = func;
+    c.RGFW_copyImageData(dest.ptr, size.w, size.h, @intFromEnum(dest_format), src.ptr, @intFromEnum(src_format), convertTrampoline);
 }
 
 /// 64-bit aware image data copy with format conversion.
 /// `is_64_bit` indicates whether the image data uses 64-bit pixels.
-pub fn copyImageData64(dest: []u8, size: Size, dest_format: Format, src: []u8, src_format: Format, is_64_bit: bool, func: ConvertImageDataFunc) void {
-    RGFW_copyImageData64(dest.ptr, size.w, size.h, @intFromEnum(dest_format), src.ptr, @intFromEnum(src_format), boolToC(is_64_bit), func);
+pub fn copyImageData64(dest: []u8, size: Size, dest_format: Format, src: []u8, src_format: Format, is_64_bit: bool, func: ?ConvertCallback) void {
+    current_convert64_callback = func;
+    RGFW_copyImageData64(dest.ptr, size.w, size.h, @intFromEnum(dest_format), src.ptr, @intFromEnum(src_format), boolToC(is_64_bit), convert64Trampoline);
 }
 
 /// Convert raw pixel data between color layouts (e.g. RGB ↔ BGR).
@@ -1211,19 +1271,38 @@ pub fn setQueueEvents(queue: bool) void {
 
 /// Set a callback function for a specific event type.
 /// Returns the previously set callback for that type (or null).
-pub fn setEventCallback(event_type: EventType, func: GenericFunc) GenericFunc {
-    return c.RGFW_setEventCallback(@intFromEnum(event_type), func);
+/// Use `getEventCallback` to query without replacing.
+pub fn setEventCallback(event_type: EventType, func: ?EventCallback) ?EventCallback {
+    const idx = @as(usize, @intFromEnum(event_type));
+    const prev = current_zig_callbacks[idx];
+    current_zig_callbacks[idx] = func;
+    _ = c.RGFW_setEventCallback(@intFromEnum(event_type), eventCallbackTrampoline);
+    return prev;
 }
 
-/// Set a callback for two sequential event types starting at `event_type`.
-/// `first` and `second` receive the previous callbacks for those slots.
-pub fn setDualEventCallback(event_type: EventType, func: GenericFunc, first: *GenericFunc, second: *GenericFunc) void {
-    c.RGFW_setDualEventCallback(@intFromEnum(event_type), func, first, second);
+/// Set the same callback for two sequential event types starting at `event_type`.
+/// Use `getEventCallback` to retrieve previous callbacks if needed.
+pub fn setDualEventCallback(event_type: EventType, callback: ?EventCallback) void {
+    const idx = @as(usize, @intFromEnum(event_type));
+    current_zig_callbacks[idx] = callback;
+    current_zig_callbacks[idx + 1] = callback;
+    c.RGFW_setDualEventCallback(@intFromEnum(event_type), eventCallbackTrampoline, null, null);
 }
 
 /// Set a single callback for ALL event types. The previous callbacks are stored in `callback_set`.
-pub fn setAllEventCallbacks(func: GenericFunc, callback_set: *Callbacks) void {
-    c.RGFW_setAllEventCallbacks(func, @ptrCast(@alignCast(callback_set)));
+/// Use `getEventCallback` to query individual event type callbacks.
+pub fn setAllEventCallbacks(func: ?EventCallback, callback_set: *[@intFromEnum(EventType.count)]?EventCallback) void {
+    for (callback_set, 0..) |*prev, i| {
+        if (i == 0) continue;
+        prev.* = current_zig_callbacks[i];
+        current_zig_callbacks[i] = func;
+        _ = c.RGFW_setEventCallback(@intCast(i), eventCallbackTrampoline);
+    }
+}
+
+/// Return the currently registered Zig callback for the given event type.
+pub fn getEventCallback(event_type: EventType) ?EventCallback {
+    return current_zig_callbacks[@as(usize, @intFromEnum(event_type))];
 }
 
 /// Create a new window with the given title, position, size, and flags.
@@ -1967,10 +2046,23 @@ pub const surface = struct {
         return if (image == null) null else ptrCast(*NativeImage, image);
     }
 
-    /// Set a custom format conversion function for the surface.
+    /// Set a custom format conversion callback for the surface.
     /// If null, the default conversion path is used.
-    pub fn setConvertFunc(surface_ptr: *Surface, func: ConvertImageDataFunc) void {
-        c.RGFW_surface_setConvertFunc(cSurface(surface_ptr), func);
+    /// Note: only one active Zig callback is supported at a time.
+    /// Use `getConvertCallback` / `getConvert64Callback` to query without replacing.
+    pub fn setConvertCallback(surface_ptr: *Surface, callback: ?ConvertCallback) void {
+        current_convert_callback = callback;
+        c.RGFW_surface_setConvertFunc(cSurface(surface_ptr), convertTrampoline);
+    }
+
+    /// Return the currently registered 8-bit convert callback.
+    pub fn getConvertCallback() ?ConvertCallback {
+        return current_convert_callback;
+    }
+
+    /// Return the currently registered 16-bit (64-bit pixel) convert callback.
+    pub fn getConvert64Callback() ?ConvertCallback {
+        return current_convert64_callback;
     }
 
     /// Free the surface and all associated buffers.
@@ -2034,8 +2126,17 @@ pub const eventQueue = struct {
 pub const debug = struct {
     /// Set a callback to receive debug messages from RGFW.
     /// Returns the previously set callback.
-    pub fn setCallback(func: DebugFunc) DebugFunc {
-        return c.RGFW_setDebugCallback(func);
+    /// Use `debug.getCallback` to query without replacing.
+    pub fn setCallback(func: ?DebugCallback) ?DebugCallback {
+        const prev = current_debug_callback;
+        current_debug_callback = func;
+        _ = c.RGFW_setDebugCallback(debugCallbackTrampoline);
+        return prev;
+    }
+
+    /// Return the currently registered debug callback.
+    pub fn getCallback() ?DebugCallback {
+        return current_debug_callback;
     }
 
     /// Manually send a debug message through the currently set callback.
