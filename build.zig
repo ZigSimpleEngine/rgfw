@@ -21,6 +21,10 @@ fn findDirNameCaseless(allocator: std.mem.Allocator, io: std.Io, dir: std.Io.Dir
 }
 
 pub const Options = struct {
+    /// The target architecture for which the module will be built.
+    target: ?std.Build.ResolvedTarget = null,
+    /// The optimization mode used to compile the module.
+    optimize: ?std.builtin.OptimizeMode = null,
     /// Force compilation with OpenGL context creation and support
     rgfw_opengl: bool = false,
     /// Compiles with EGL context creation support, allowing you to use EGL instead of native OpenGL context functions (WGL/GLX/NSGL)
@@ -158,6 +162,8 @@ pub const Options = struct {
 
     pub fn initFromOptions(b: *std.Build) Options {
         return .{
+            .target = b.standardTargetOptions(.{}),
+            .optimize = b.standardOptimizeOption(.{}),
             .rgfw_opengl = b.option(bool, "rgfw_opengl", "Force compilation with OpenGL context creation and support") orelse false,
             .rgfw_egl = b.option(bool, "rgfw_egl", "Compiles with EGL context creation support, allowing you to use EGL instead of native OpenGL context functions (WGL/GLX/NSGL)") orelse false,
             .rgfw_vulkan = b.option(bool, "rgfw_vulkan", "Enables Vulkan context creation helper functions, macros, and structure definitions") orelse false,
@@ -227,87 +233,21 @@ pub const Options = struct {
             .rgfw_debug = b.option(bool, "rgfw_debug", "Enables RGFW debug mode, printing debug messages and detailed errors when they occur") orelse false,
         };
     }
-
-    pub fn toDependencyArgs(comptime value: Options) CompactType(value) {
-        const Result = CompactType(value);
-
-        var result: Result = undefined;
-
-        const fields = @typeInfo(Result).@"struct".fields;
-
-        inline for (fields) |field| {
-            const v = @field(value, field.name);
-
-            @field(result, field.name) = switch (@typeInfo(@TypeOf(v))) {
-                .optional => v.?,
-                else => v,
-            };
-        }
-
-        return result;
-    }
-
-    fn unwrap(comptime T: type) type {
-        return switch (@typeInfo(T)) {
-            .optional => |o| o.child,
-            else => T,
-        };
-    }
-
-    fn isKeep(comptime value: anytype) bool {
-        return switch (@typeInfo(@TypeOf(value))) {
-            .optional => value != null,
-            .bool => value,
-            else => unreachable,
-        };
-    }
-
-    fn CompactType(comptime value: anytype) type {
-        const T = @TypeOf(value);
-        const fields = @typeInfo(T).@"struct".fields;
-
-        comptime var count = 0;
-        inline for (fields) |field| {
-            if (isKeep(@field(value, field.name))) {
-                count += 1;
-            }
-        }
-
-        comptime var names: [count][]const u8 = undefined;
-        comptime var types: [count]type = undefined;
-        comptime var attrs: [count]std.builtin.Type.StructField.Attributes =
-            @splat(.{});
-
-        comptime var index = 0;
-
-        inline for (fields) |field| {
-            const v = @field(value, field.name);
-            if (isKeep(v)) {
-                names[index] = field.name;
-                types[index] = unwrap(field.type);
-                attrs[index] = .{};
-                index += 1;
-            }
-        }
-
-        return @Struct(
-            .auto,
-            null,
-            &names,
-            &types,
-            &attrs,
-        );
-    }
 };
 
 pub fn build(b: *std.Build) void {
-    const target = b.standardTargetOptions(.{});
-    const optimize = b.standardOptimizeOption(.{});
-
     const options = Options.initFromOptions(b);
+    const target = options.target orelse b.standardTargetOptions(.{});
+    const optimize = options.optimize orelse b.standardOptimizeOption(.{});
 
     const rgfw_options = b.addOptions();
     inline for (std.meta.fields(@TypeOf(options))) |field| {
+        if (comptime std.mem.eql(u8, field.name, "target") or
+            std.mem.eql(u8, field.name, "optimize"))
+        {
+            continue;
+        }
+
         rgfw_options.addOption(@TypeOf(@field(options, field.name)), field.name, @field(options, field.name));
     }
 
@@ -316,6 +256,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
         .link_libc = true,
+        .sanitize_c = .off,
     });
 
     mod.addOptions("rgfw_options", rgfw_options);
@@ -453,7 +394,6 @@ pub fn build(b: *std.Build) void {
     }
     if (options.rgfw_webgpu) {
         mod.addCMacro("RGFW_WEBGPU", "");
-        mod.addIncludePath(b.path("include"));
         // Note: when using WebGPU, you must link a WebGPU implementation library
         // (e.g. wgpu_native, dawn, webgpu_dawn) yourself.
     }

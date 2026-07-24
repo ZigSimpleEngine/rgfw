@@ -15273,7 +15273,7 @@ EM_BOOL Emscripten_on_fullscreenchange(int eventType, const EmscriptenFullscreen
 		_RGFW->root->w = originalW;
 		_RGFW->root->h = originalH;
 	} else {
-		#if __EMSCRIPTEN_major__  >= 1 && __EMSCRIPTEN_minor__  >= 29 && __EMSCRIPTEN_tiny__  >= 0
+		#if __EMSCRIPTEN_MAJOR__  >= 1 && __EMSCRIPTEN_MINOR__  >= 29 && __EMSCRIPTEN_TINY__  >= 0
 			EmscriptenFullscreenStrategy FSStrat = {0};
 			FSStrat.scaleMode = EMSCRIPTEN_FULLSCREEN_SCALE_STRETCH;
 			FSStrat.canvasResolutionScaleMode = EMSCRIPTEN_FULLSCREEN_CANVAS_SCALE_HIDEF;
