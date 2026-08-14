@@ -327,7 +327,13 @@ pub const InitFlags = packed struct(u8) {
     _: u4 = 0,
 };
 
-/// Pixel data format identifier (RGB8, RGBA8, BGRA8, etc.).
+pub const ColorRGB = packed struct(u24) { r: u8 = 0, g: u8 = 0, b: u8 = 0 };
+pub const ColorBGR = packed struct(u24) { b: u8 = 0, g: u8 = 0, r: u8 = 0 };
+pub const ColorRGBA = packed struct(u32) { r: u8 = 0, g: u8 = 0, b: u8 = 0, a: u8 = 0xFF };
+pub const ColorARGB = packed struct(u32) { a: u8 = 0xFF, r: u8 = 0, g: u8 = 0, b: u8 = 0 };
+pub const ColorBGRA = packed struct(u32) { b: u8 = 0, g: u8 = 0, r: u8 = 0, a: u8 = 0xFF };
+pub const ColorABGR = packed struct(u32) { a: u8 = 0xFF, b: u8 = 0, g: u8 = 0, r: u8 = 0 };
+
 pub const Format = enum(u8) {
     rgb8 = c.RGFW_formatRGB8,
     bgr8 = c.RGFW_formatBGR8,
@@ -335,8 +341,23 @@ pub const Format = enum(u8) {
     argb8 = c.RGFW_formatARGB8,
     bgra8 = c.RGFW_formatBGRA8,
     abgr8 = c.RGFW_formatABGR8,
-    /// Total number of pixel format types.
+
     pub const count: comptime_int = c.RGFW_formatCount;
+
+    pub fn Color(format: Format) type {
+        return switch (format) {
+            .rgb8 => ColorRGB,
+            .bgr8 => ColorBGR,
+            .rgba8 => ColorRGBA,
+            .argb8 => ColorARGB,
+            .bgra8 => ColorBGRA,
+            .abgr8 => ColorABGR,
+        };
+    }
+
+    pub fn bytesPerPixel(format: Format) u8 {
+        return @sizeOf(format.Color());
+    }
 };
 
 /// Monitor mode request flags (scale, refresh rate, RGB bit depth).
@@ -681,18 +702,53 @@ pub const MouseVector = struct {
     pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
-/// Describes an image: pixel data, dimensions, and format.
-pub const Image = struct {
-    /// Raw pixel data.
+pub const ImageInfo = struct {
     data: []u8,
-    /// Width in pixels.
     w: i32,
-    /// Height in pixels.
     h: i32,
-    /// Pixel format identifier.
     format: Format,
-    pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
+
+pub fn Image(comptime image_format: Format) type {
+    const color_type = image_format.Color();
+
+    return struct {
+        const Self = @This();
+
+        info: ImageInfo,
+        color_data: []Color,
+
+        pub const Color = color_type;
+        pub const format = image_format;
+
+        pub fn init(gpa: std.mem.Allocator, width: i32, height: i32) !Self {
+            const pixel_count: usize = @intCast(width * height);
+            const byte_count = pixel_count * @sizeOf(Color);
+
+            const color_data = try gpa.alloc(Color, byte_count);
+
+            return .{
+                .info = .{
+                    .data = std.mem.bytesAsSlice(u8, color_data),
+                    .w = width,
+                    .h = height,
+                    .format = Self.format,
+                },
+                .color_data = color_data,
+            };
+        }
+
+        pub fn deinit(self: *const Self, gpa: std.mem.Allocator) void {
+            gpa.free(self.color_data);
+        }
+
+        pub fn clear(self: *const Self, color: Color) void {
+            for (self.color_data, 0..) |_, i| {
+                self.color_data[i] = color;
+            }
+        }
+    };
+}
 
 pub const CommonEvent = extern struct {
     type: EventType = .none,
@@ -1439,13 +1495,13 @@ pub fn extensionSupportedBase(extension: []const u8, get_proc_address: ProcLoade
 /// Window management and query functions.
 pub const window = struct {
     /// Create a software surface for the given window from raw pixel data.
-    pub fn createSurface(win: *Window, image: Image) ?*Surface {
-        return zigSurface(c.RGFW_window_createSurface(cWindow(win), image.data.ptr, image.w, image.h, @intFromEnum(image.format)));
+    pub fn createSurface(win: *Window, image_info: ImageInfo) ?*Surface {
+        return zigSurface(c.RGFW_window_createSurface(cWindow(win), image_info.data.ptr, image_info.w, image_info.h, @intFromEnum(image_info.format)));
     }
 
     /// Create a software surface using a pre-allocated `Surface` structure.
-    pub fn createSurfacePtr(win: *Window, image: Image, surface_ptr: *Surface) bool {
-        return boolFromC(c.RGFW_window_createSurfacePtr(cWindow(win), image.data.ptr, image.w, image.h, @intFromEnum(image.format), cSurface(surface_ptr)));
+    pub fn createSurfacePtr(win: *Window, image_info: ImageInfo, surface_ptr: *Surface) bool {
+        return boolFromC(c.RGFW_window_createSurfacePtr(cWindow(win), image_info.data.ptr, image_info.w, image_info.h, @intFromEnum(image_info.format), cSurface(surface_ptr)));
     }
 
     /// Close the window and free its associated structure.
@@ -1803,13 +1859,13 @@ pub const window = struct {
     }
 
     /// Set the window icon and taskbar icon from image data.
-    pub fn setIcon(win: *Window, image: Image) bool {
-        return boolFromC(c.RGFW_window_setIcon(cWindow(win), image.data.ptr, image.w, image.h, @intFromEnum(image.format)));
+    pub fn setIcon(win: *Window, image_info: ImageInfo) bool {
+        return boolFromC(c.RGFW_window_setIcon(cWindow(win), image_info.data.ptr, image_info.w, image_info.h, @intFromEnum(image_info.format)));
     }
 
     /// Set the window and/or taskbar icon with explicit target selection.
-    pub fn setIconEx(win: *Window, image: Image, icon_type: Icon) bool {
-        return boolFromC(c.RGFW_window_setIconEx(cWindow(win), image.data.ptr, image.w, image.h, @intFromEnum(image.format), @intFromEnum(icon_type)));
+    pub fn setIconEx(win: *Window, image_info: ImageInfo, icon_type: Icon) bool {
+        return boolFromC(c.RGFW_window_setIconEx(cWindow(win), image_info.data.ptr, image_info.w, image_info.h, @intFromEnum(image_info.format), @intFromEnum(icon_type)));
     }
 
     /// Show or hide the mouse cursor over the window.
@@ -2045,13 +2101,13 @@ pub const monitor = struct {
 /// Software surface creation, manipulation, and blitting.
 pub const surface = struct {
     /// Create a new software surface from raw pixel data.
-    pub fn create(image: Image) ?*Surface {
-        return zigSurface(c.RGFW_createSurface(image.data.ptr, image.w, image.h, @intFromEnum(image.format)));
+    pub fn create(image_info: ImageInfo) ?*Surface {
+        return zigSurface(c.RGFW_createSurface(image_info.data.ptr, image_info.w, image_info.h, @intFromEnum(image_info.format)));
     }
 
     /// Create a software surface using a pre-allocated `Surface` structure.
-    pub fn createPtr(image: Image, surface_ptr: *Surface) bool {
-        return boolFromC(c.RGFW_createSurfacePtr(image.data.ptr, image.w, image.h, @intFromEnum(image.format), cSurface(surface_ptr)));
+    pub fn createPtr(image_info: ImageInfo, surface_ptr: *Surface) bool {
+        return boolFromC(c.RGFW_createSurfacePtr(image_info.data.ptr, image_info.w, image_info.h, @intFromEnum(image_info.format), cSurface(surface_ptr)));
     }
 
     /// Get the native image associated with a surface.
@@ -2162,8 +2218,8 @@ pub const debug = struct {
 /// Mouse cursor creation and window cursor management.
 pub const mouse = struct {
     /// Create a custom mouse cursor from image data.
-    pub fn create(image: Image) ?*Mouse {
-        return zigMouse(c.RGFW_createMouse(image.data.ptr, image.w, image.h, @intFromEnum(image.format)));
+    pub fn create(image_info: ImageInfo) ?*Mouse {
+        return zigMouse(c.RGFW_createMouse(image_info.data.ptr, image_info.w, image_info.h, @intFromEnum(image_info.format)));
     }
 
     /// Create a standard system cursor by its icon identifier.

@@ -491,4 +491,36 @@ pub fn build(b: *std.Build) void {
     var run_example_exe = b.step("example", "Build and run example.zig");
     run_example_exe.dependOn(&example_install.step);
     run_example_exe.dependOn(&example_run.step);
+
+    // WebGPU example (requires rgfw_webgpu and WGPU_SDK env var)
+    const wgpu_sdk = b.option([]const u8, "wgpu_sdk", "Path to WebGPU SDK root (overrides WGPU_SDK env var)") orelse
+        (getEnv(b.allocator, "WGPU_SDK") orelse null);
+
+    if (wgpu_sdk) |sdk| {
+        const wgpu_include = std.fs.path.join(b.allocator, &[_][]const u8{ sdk, "include" }) catch @panic("OOM");
+        const wgpu_lib = std.fs.path.join(b.allocator, &[_][]const u8{ sdk, "lib" }) catch @panic("OOM");
+
+        var wgpu_exe = b.addExecutable(.{
+            .name = "webgpu_example",
+            .root_module = b.createModule(.{
+                .root_source_file = b.path("src/webgpu_example.zig"),
+                .target = target,
+                .optimize = optimize,
+            }),
+        });
+        var wgpu_install = b.addInstallArtifact(wgpu_exe, .{});
+
+        wgpu_exe.root_module.addImport("rgfw", mod);
+        wgpu_exe.root_module.addIncludePath(.{ .cwd_relative = wgpu_include });
+        wgpu_exe.root_module.addLibraryPath(.{ .cwd_relative = wgpu_lib });
+        wgpu_exe.root_module.linkSystemLibrary("wgpu_native", .{});
+
+        var wgpu_run = b.addRunArtifact(wgpu_exe);
+
+        var run_wgpu_exe = b.step("webgpu_example", "Build and run webgpu_example.zig (requires WGPU_SDK)");
+        run_wgpu_exe.dependOn(&wgpu_install.step);
+        run_wgpu_exe.dependOn(&wgpu_run.step);
+    } else {
+        _ = b.step("webgpu_example", "SKIP — set WGPU_SDK env var or --wgpu_sdk to build the WebGPU example");
+    }
 }

@@ -1,11 +1,11 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
+var debug_allocator = std.heap.DebugAllocator(.{}){};
+
 pub const allocator = blk: {
     if (builtin.mode == .Debug) {
-        var debug = std.heap.DebugAllocator(.{}){};
-
-        break :blk debug.allocator();
+        break :blk debug_allocator.allocator();
     } else {
         break :blk std.heap.smp_allocator;
     }
@@ -35,4 +35,4 @@ pub fn createLogger(
     }.logger;
 }
 
-pub const panic = std.debug.FullPanic;
+pub const panic = std.debug.FullPanic(std.debug.defaultPanic);
