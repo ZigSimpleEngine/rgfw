@@ -11424,13 +11424,15 @@ LRESULT CALLBACK WndProcW(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					continue;
 
 				WCHAR* buffer = (WCHAR*)RGFW_ALLOC(sizeof(WCHAR) * (length + 1));
-				char* cbuffer = (char*)RGFW_ALLOC(length + 1);
+				/* UTF-8 needs up to 3 bytes per UTF-16 unit plus the terminator */
+				char* cbuffer = (char*)RGFW_ALLOC(length * 3 + 2);
 
 				DragQueryFileW(drop, i, buffer, length + 1);
 
-				RGFW_createUTF8FromWideStringWin32(buffer, cbuffer, length);
+				if (RGFW_createUTF8FromWideStringWin32(buffer, cbuffer, length * 3 + 2)) {
+					RGFW_dataDropCallback(win, cbuffer, strlen(cbuffer) + 1, RGFW_dataFile);
+				}
 
-				RGFW_dataDropCallback(win, cbuffer, length + 1, RGFW_dataFile);
 				RGFW_FREE(buffer);
 				RGFW_FREE(cbuffer);
 			}
@@ -12759,6 +12761,10 @@ RGFW_proc RGFW_getProcAddress_OpenGL(const char* procname) {
 }
 
 RGFW_bool RGFW_window_createContextPtr_OpenGL(RGFW_window* win, RGFW_glContext* ctx, RGFW_glHints* hints) {
+	if (hints == NULL) {
+		hints = RGFW_globalHints_OpenGL;
+	}
+
 	const char flushControl[] = "WGL_ARB_context_flush_control";
 	const char noError[] = "WGL_ARB_create_context_no_error";
 	const char robustness[] = "WGL_ARB_create_context_robustness";
@@ -12925,23 +12931,22 @@ void RGFW_window_swapInterval_OpenGL(RGFW_window* win, i32 swapInterval) {
 #endif
 
 RGFW_bool RGFW_createUTF8FromWideStringWin32(const WCHAR* source, char* output, size_t max) {
-    i32 size = 0;
-    if (source == NULL) {
-        return RGFW_FALSE;
+	i32 size = 0;
+	if (source == NULL || output == NULL || max == 0) {
+		return RGFW_FALSE;
 	}
 	size = WideCharToMultiByte(CP_UTF8, 0, source, -1, NULL, 0, NULL, NULL);
 	if (!size) {
 		return RGFW_FALSE;
 	}
-
-	if (size > (i32)max)
-		size = (i32)max;
-
+	if ((size_t)size > max) {
+		/* UTF-8 output does not fit: callers must provide a buffer of up
+		   to 3 bytes per UTF-16 unit plus the terminator */
+		return RGFW_FALSE;
+	}
 	if (!WideCharToMultiByte(CP_UTF8, 0, source, -1, output, size, NULL, NULL)) {
 		return RGFW_FALSE;
 	}
-
-	output[size] = 0;
 	return RGFW_TRUE;
 }
 
