@@ -152,6 +152,79 @@ extern fn emscripten_get_callstack(
     maxbytes: c_int,
 ) c_int;
 
+/// Cross-platform absolute/elapsed time tracker, normalized to milliseconds.
+/// `now`/`nowSeconds` report the current wall-clock time since the Unix
+/// epoch; `fromStart`/`fromStartSeconds` report time elapsed since this
+/// instance was created.
+pub const Time = struct {
+    /// Wall-clock timestamp (ms) captured at construction time.
+    start_ms: i64,
+    /// Rolling timestamp (ms) of the previous `delta` call (frame marker).
+    last_ms: i64,
+
+    /// Create a `Time` anchored to the current moment.
+    pub fn init() Time {
+        const now_ms = timestampMs();
+        return .{ .start_ms = now_ms, .last_ms = now_ms };
+    }
+
+    /// Current wall-clock time in milliseconds since the Unix epoch.
+    pub fn now(self: *const Time) i64 {
+        _ = self;
+        return timestampMs();
+    }
+
+    /// Current wall-clock time in seconds since the Unix epoch (fractional).
+    pub fn nowSeconds(self: *const Time) f64 {
+        _ = self;
+        return timestampSeconds();
+    }
+
+    /// Milliseconds elapsed since this `Time` was created.
+    pub fn fromStart(self: *const Time) i64 {
+        return now(self) - self.start_ms;
+    }
+
+    /// Seconds elapsed since this `Time` was created (fractional).
+    pub fn fromStartSeconds(self: *const Time) f64 {
+        return @as(f64, @floatFromInt(self.fromStart())) / 1000.0;
+    }
+
+    /// Milliseconds elapsed since the previous `deltaMs` call (0 on first
+    /// call), and advances the frame marker. Call once per frame.
+    pub fn deltaMs(self: *Time) i64 {
+        const now_ms = timestampMs();
+        const delta = now_ms - self.last_ms;
+        self.last_ms = now_ms;
+        return delta;
+    }
+
+    /// Seconds elapsed since the previous `deltaSeconds` call (0 on first
+    /// call), and advances the frame marker. Call once per frame.
+    pub fn deltaSeconds(self: *Time) f64 {
+        const now_sec = timestampSeconds();
+        const delta = now_sec - @as(f64, @floatFromInt(self.last_ms)) / 1000.0;
+        const now_ms: i64 = @intFromFloat(now_sec * 1000.0);
+        self.last_ms = now_ms;
+        return delta;
+    }
+};
+
+/// Wall-clock time in milliseconds since the Unix epoch.
+fn timestampMs() i64 {
+    var tv: std.c.timeval = undefined;
+    _ = std.c.gettimeofday(&tv, null);
+    return @as(i64, tv.sec) * 1000 + @divTrunc(@as(i64, tv.usec), 1000);
+}
+
+/// Wall-clock time in seconds since the Unix epoch (fractional).
+fn timestampSeconds() f64 {
+    var tv: std.c.timeval = undefined;
+    _ = std.c.gettimeofday(&tv, null);
+    const sec_f: f64 = @floatFromInt(tv.sec);
+    return sec_f + @as(f64, tv.usec) / 1_000_000.0;
+}
+
 pub fn panic(
     msg: []const u8,
     error_return_trace: ?*std.builtin.StackTrace,

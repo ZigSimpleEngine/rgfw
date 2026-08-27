@@ -21,6 +21,16 @@ pub const createLogger: fn (
 ) fn (comptime []const u8, anytype) void = backend.createLogger;
 pub const panic = backend.panic;
 
+/// Time tracker backed by the platform implementation. `Time()` creates an
+/// instance anchored to the current moment; `now`/`nowSeconds` report the
+/// current wall-clock time (Unix epoch), `fromStart`/`fromStartSeconds`
+/// report elapsed time, and `deltaMs`/`deltaSeconds` return the time elapsed
+/// since the previous call (per-frame delta).
+pub const TimeType = backend.Time;
+pub fn Time() backend.Time {
+    return backend.Time.init();
+}
+
 // const log = createLogger(1024, .info, .rgfw);
 const warn = createLogger(1024, .warn, .rgfw);
 
@@ -1517,6 +1527,19 @@ pub const window = struct {
     /// Check if the window should close (e.g. ESC was pressed or close button clicked).
     pub fn shouldClose(win: *Window) bool {
         return boolFromC(c.RGFW_window_shouldClose(cWindow(win)));
+    }
+
+    /// Frame timer backing `whileOpen` (created lazily on first use).
+    threadlocal var while_open_time: ?TimeType = null;
+
+    /// Managed loop-helper: `null` means the window should close, otherwise the
+    /// seconds elapsed since the previous call (first call returns ~0). Use it
+    /// as the loop condition to get per-frame delta time:
+    /// `while (rgfw.window.whileOpen(win)) |delta| { ... }`.
+    pub fn whileOpen(win: *Window) ?f64 {
+        if (shouldClose(win)) return null;
+        if (while_open_time == null) while_open_time = TimeType.init();
+        return while_open_time.?.deltaSeconds();
     }
 
     /// Explicitly set or clear the "should close" state of the window.

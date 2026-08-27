@@ -170,7 +170,8 @@ test "Position, Size, Scale, Rect, MouseVector, Image" {
     try std.testing.expectEqual(f32, @TypeOf(@as(rgfw.Scale, undefined).x));
     try std.testing.expectEqual(i32, @TypeOf(@as(rgfw.Rect, undefined).x));
     try std.testing.expectEqual(f32, @TypeOf(@as(rgfw.MouseVector, undefined).x));
-    _ = rgfw.Image{ .data = undefined, .w = 0, .h = 0, .format = .rgb8 };
+    _ = rgfw.Image(.rgb8);
+    _ = rgfw.ImageInfo;
 }
 
 test "event structs — sizes match C layout" {
@@ -274,6 +275,7 @@ test "window.* functions" {
     _ = &rgfw.window.close;
     _ = &rgfw.window.closePtr;
     _ = &rgfw.window.shouldClose;
+    _ = &rgfw.window.whileOpen;
     _ = &rgfw.window.setShouldClose;
     _ = &rgfw.window.getExitKey;
     _ = &rgfw.window.setExitKey;
@@ -627,4 +629,26 @@ test "native.* functions" {
     _ = &rgfw.native.x11ImInitCallback;
     _ = &rgfw.native.xGetMode;
     _ = &rgfw.native.windowGetVisual;
+}
+
+test "time.* — Time() anchored instance tracks elapsed time" {
+    var time = rgfw.Time();
+    const t0 = time.now();
+    const s0 = time.nowSeconds();
+    const start = time.fromStart();
+
+    try std.testing.expect(s0 > 0);
+    try std.testing.expect(t0 > 1_600_000_000_000); // plausible epoch ms (past 2020)
+    try std.testing.expect(s0 > 1_600_000_000); // plausible epoch sec (past 2020)
+    try std.testing.expect(start >= 0);
+    try std.testing.expect(start < 1000); // freshly created
+
+    const t1 = time.now();
+    try std.testing.expect(t1 >= t0);
+
+    try std.testing.expect(time.fromStart() >= start);
+    try std.testing.expect(time.fromStartSeconds() >= 0);
+
+    try std.testing.expect(time.deltaSeconds() >= 0);
+    try std.testing.expect(time.deltaMs() >= 0);
 }
