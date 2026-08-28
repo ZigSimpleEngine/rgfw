@@ -15704,7 +15704,7 @@ RGFW_bool RGFW_window_fetchSize(RGFW_window* win, i32* w, i32* h) {
 
 void RGFW_pollEvents(void) {
 	static int using_asyncify = -1;
-	if (using_asyncify == -1) using_asyncify = EM_ASM_INT({ return 'Asyncify' in Module; });
+	if (using_asyncify == -1) using_asyncify = EM_ASM_INT({ return (typeof Asyncify !== 'undefined') || ('Asyncify' in Module); });
 
 	RGFW_resetPrevState();
 	if (using_asyncify) {

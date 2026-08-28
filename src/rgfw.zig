@@ -1536,10 +1536,10 @@ pub const window = struct {
     /// seconds elapsed since the previous call (first call returns ~0). Use it
     /// as the loop condition to get per-frame delta time:
     /// `while (rgfw.window.whileOpen(win)) |delta| { ... }`.
-    pub fn whileOpen(win: *Window) ?f64 {
+    pub fn whileOpen(win: *Window) ?f32 {
         if (shouldClose(win)) return null;
         if (while_open_time == null) while_open_time = TimeType.init();
-        return while_open_time.?.deltaSeconds();
+        return @floatCast(while_open_time.?.deltaSeconds());
     }
 
     /// Explicitly set or clear the "should close" state of the window.
