@@ -1,5 +1,7 @@
 const std = @import("std");
 
+const ThisBuild = @This();
+
 fn getEnv(allocator: std.mem.Allocator, name: []const u8) ?[]u8 {
     const environ = std.process.Environ{ .block = .{ .use_global = true } };
     var map = std.process.Environ.createMap(environ, allocator) catch return null;
@@ -232,6 +234,236 @@ pub const Options = struct {
             .rgfw_xdnd_version = b.option(u32, "rgfw_xdnd_version", "Overrides the default XDnD (Drag and Drop) protocol version (defaults to 5 on X11)"),
             .rgfw_debug = b.option(bool, "rgfw_debug", "Enables RGFW debug mode, printing debug messages and detailed errors when they occur") orelse false,
         };
+    }
+
+    /// Create the `rgfw` module in the caller's build graph.
+    ///
+    /// Intended for parent packages that want a single shared instance:
+    /// ```zig
+    /// const rgfw_mod = (@import("rgfw").Options{
+    ///     .target = target,
+    ///     .optimize = optimize,
+    ///     .rgfw_opengl = true,
+    /// }).getModule(b);
+    /// ```
+    /// Uses `dependencyFromBuildZig` so source paths (`src/rgfw.zig`,
+    /// `RGFW.c`) stay correct when called from a parent build via
+    /// `@import("rgfw")`. Without explicit options it behaves exactly
+    /// like `build()` (same C macros, links and SDK handling).
+    pub fn getModule(self: Options, b: *std.Build) *std.Build.Module {
+        const target = self.target orelse b.standardTargetOptions(.{});
+        const optimize = self.optimize orelse b.standardOptimizeOption(.{});
+        const self_dep = b.dependencyFromBuildZig(ThisBuild, .{
+            .target = target,
+            .optimize = optimize,
+        });
+
+        const rgfw_options = b.addOptions();
+        inline for (std.meta.fields(@TypeOf(self))) |field| {
+            if (comptime std.mem.eql(u8, field.name, "target") or
+                std.mem.eql(u8, field.name, "optimize"))
+            {
+                continue;
+            }
+
+            rgfw_options.addOption(@TypeOf(@field(self, field.name)), field.name, @field(self, field.name));
+        }
+
+        const mod = b.createModule(.{
+            .root_source_file = self_dep.path("src/rgfw.zig"),
+            .target = target,
+            .optimize = optimize,
+            .link_libc = true,
+            .sanitize_c = .off,
+        });
+
+        mod.addOptions("rgfw_options", rgfw_options);
+        mod.addIncludePath(self_dep.path("."));
+        mod.addCSourceFile(.{ .file = self_dep.path("RGFW.c"), .flags = &.{"-Wno-nullability-completeness"} });
+        if (target.result.os.tag != .emscripten) {
+            if (target.result.os.tag == .windows) {
+                mod.linkSystemLibrary("opengl32", .{});
+                mod.linkSystemLibrary("gdi32", .{});
+                mod.linkSystemLibrary("shell32", .{});
+                mod.linkSystemLibrary("user32", .{});
+            } else if (target.result.os.tag == .linux) {
+                if (self.rgfw_wayland) {
+                    mod.linkSystemLibrary("wayland-client", .{});
+                    mod.linkSystemLibrary("wayland-egl", .{});
+                    mod.linkSystemLibrary("wayland-cursor", .{});
+                    mod.linkSystemLibrary("xkbcommon", .{});
+                    mod.linkSystemLibrary("dl", .{});
+                } else {
+                    mod.linkSystemLibrary("X11", .{});
+                    mod.linkSystemLibrary("Xrandr", .{});
+                    mod.linkSystemLibrary("m", .{});
+                    mod.linkSystemLibrary("dl", .{});
+                }
+            } else if (target.result.os.tag.isDarwin()) {
+                mod.linkFramework("Cocoa", .{});
+                mod.linkFramework("IOKit", .{});
+            }
+        }
+
+        // Apply C macros (for RGFW.c, the single-header C library)
+        if (self.rgfw_opengl) mod.addCMacro("RGFW_OPENGL", "");
+        if (self.rgfw_debug) mod.addCMacro("RGFW_DEBUG", "");
+        if (self.rgfw_egl) {
+            mod.addCMacro("RGFW_EGL", "");
+            mod.addCMacro("RGFW_OPENGL", ""); // EGL on Windows requires nativeGL_handle (defined under RGFW_OPENGL)
+            const egl_sdk = b.option([]const u8, "egl_sdk", "Path to EGL SDK root (overrides EGL_SDK env var)") orelse
+                (getEnv(b.allocator, "EGL_SDK") orelse {
+                    std.log.err(
+                        \\EGL support requires the EGL_SDK environment variable.
+                        \\
+                        \\RGFW with rgfw_egl needs EGL headers (EGL/egl.h) and libraries.
+                        \\Set EGL_SDK to the root directory of your EGL implementation
+                        \\(e.g. ANGLE, Mesa, or system EGL).
+                        \\
+                        \\This directory should contain:
+                        \\  include/EGL/   - headers (egl.h, eglext.h, eglplatform.h)
+                        \\  lib/           - EGL library (libEGL.lib, libEGL.dll.a, etc.)
+                        \\
+                        \\Example:
+                        \\  set EGL_SDK=D:\Libs\C\angle-x64   (Windows)
+                        \\  export EGL_SDK=/usr/local/angle    (Linux/macOS)
+                    , .{});
+                    @panic("EGL_SDK not configured");
+                });
+            const egl_dir = std.Io.Dir.openDirAbsolute(b.graph.io, egl_sdk, .{ .iterate = true }) catch |err| {
+                std.log.err("EGL_SDK path '{s}' does not exist or is not accessible: {s}", .{ egl_sdk, @errorName(err) });
+                @panic("invalid EGL_SDK path");
+            };
+            defer std.Io.Dir.close(egl_dir, b.graph.io);
+
+            const include_name = (findDirNameCaseless(b.allocator, b.graph.io, egl_dir, "include") catch @panic("I/O error scanning EGL_SDK")) orelse {
+                std.log.err("EGL_SDK directory '{s}' does not contain an 'include' subdirectory", .{egl_sdk});
+                @panic("EGL SDK missing include directory");
+            };
+
+            const lib_name = (findDirNameCaseless(b.allocator, b.graph.io, egl_dir, "lib") catch @panic("I/O error scanning EGL_SDK")) orelse {
+                std.log.err("EGL_SDK directory '{s}' does not contain a 'lib' subdirectory", .{egl_sdk});
+                @panic("EGL SDK missing lib directory");
+            };
+
+            const include_path = std.fs.path.join(b.allocator, &[_][]const u8{ egl_sdk, include_name }) catch @panic("OOM");
+            const lib_path = std.fs.path.join(b.allocator, &[_][]const u8{ egl_sdk, lib_name }) catch @panic("OOM");
+
+            mod.addIncludePath(.{ .cwd_relative = include_path });
+            mod.addLibraryPath(.{ .cwd_relative = lib_path });
+            mod.linkSystemLibrary("libEGL.dll", .{});
+        }
+        if (self.rgfw_directx) mod.addCMacro("RGFW_DIRECTX", "");
+        if (self.rgfw_vulkan) {
+            mod.addCMacro("RGFW_VULKAN", "");
+            mod.addCMacro("VK_USE_PLATFORM_WIN32_KHR", "");
+            const vulkan_sdk = b.option([]const u8, "vulkan_sdk", "Path to Vulkan SDK root (overrides VULKAN_SDK env var)") orelse
+                (getEnv(b.allocator, "VULKAN_SDK") orelse {
+                    std.log.err(
+                        \\Vulkan support requires the VULKAN_SDK environment variable.
+                        \\
+                        \\RGFW with rgfw_vulkan needs Vulkan headers (vulkan/vulkan.h) and libraries.
+                        \\Set VULKAN_SDK to the root directory of your Vulkan SDK installation.
+                        \\
+                        \\This directory should contain:
+                        \\  Include/vulkan/   - headers (vulkan.h, vk_platform.h, etc.)
+                        \\  Lib/              - Vulkan library (vulkan-1.lib, libvulkan.so, etc.)
+                        \\
+                        \\Example:
+                        \\  set VULKAN_SDK=C:\VulkanSDK\1.3.xxx   (Windows)
+                        \\  export VULKAN_SDK=/usr/local/vulkan   (Linux/macOS)
+                    , .{});
+                    @panic("VULKAN_SDK not configured");
+                });
+            const vk_dir = std.Io.Dir.openDirAbsolute(b.graph.io, vulkan_sdk, .{ .iterate = true }) catch |err| {
+                std.log.err("VULKAN_SDK path '{s}' does not exist or is not accessible: {s}", .{ vulkan_sdk, @errorName(err) });
+                @panic("invalid VULKAN_SDK path");
+            };
+            defer std.Io.Dir.close(vk_dir, b.graph.io);
+
+            const include_name = (findDirNameCaseless(b.allocator, b.graph.io, vk_dir, "include") catch @panic("I/O error scanning VULKAN_SDK")) orelse {
+                std.log.err("VULKAN_SDK directory '{s}' does not contain an 'include' subdirectory", .{vulkan_sdk});
+                @panic("Vulkan SDK missing include directory");
+            };
+
+            const lib_name = (findDirNameCaseless(b.allocator, b.graph.io, vk_dir, "lib") catch @panic("I/O error scanning VULKAN_SDK")) orelse {
+                std.log.err("VULKAN_SDK directory '{s}' does not contain a 'lib' subdirectory", .{vulkan_sdk});
+                @panic("Vulkan SDK missing lib directory");
+            };
+
+            const include_path = std.fs.path.join(b.allocator, &[_][]const u8{ vulkan_sdk, include_name }) catch @panic("OOM");
+            const lib_path = std.fs.path.join(b.allocator, &[_][]const u8{ vulkan_sdk, lib_name }) catch @panic("OOM");
+
+            mod.addIncludePath(.{ .cwd_relative = include_path });
+            mod.addLibraryPath(.{ .cwd_relative = lib_path });
+            mod.linkSystemLibrary("vulkan-1", .{});
+        }
+        if (self.rgfw_webgpu) {
+            mod.addCMacro("RGFW_WEBGPU", "");
+        }
+        if (self.rgfw_native) mod.addCMacro("RGFW_NATIVE", "");
+        if (self.rgfw_x11) mod.addCMacro("RGFW_X11", "");
+        if (self.rgfw_wayland) mod.addCMacro("RGFW_WAYLAND", "");
+        if (self.rgfw_no_static_context) mod.addCMacro("RGFW_NO_STATIC_CONTEXT", "");
+        if (self.rgfw_no_x11) mod.addCMacro("RGFW_NO_X11", "");
+        if (self.rgfw_no_x11_cursor) mod.addCMacro("RGFW_NO_X11_CURSOR", "");
+        if (self.rgfw_no_x11_cursor_preload) mod.addCMacro("RGFW_NO_X11_CURSOR_PRELOAD", "");
+        if (self.rgfw_no_x11_ext_preload) mod.addCMacro("RGFW_NO_X11_EXT_PRELOAD", "");
+        if (self.rgfw_no_x11_xi_preload) mod.addCMacro("RGFW_NO_X11_XI_PRELOAD", "");
+        if (self.rgfw_no_load_winmm) mod.addCMacro("RGFW_NO_LOAD_WINMM", "");
+        if (self.rgfw_no_winmm) mod.addCMacro("RGFW_NO_WINMM", "");
+        if (self.rgfw_no_iokit) mod.addCMacro("RGFW_NO_IOKIT", "");
+        if (self.rgfw_no_unix_clock) mod.addCMacro("RGFW_NO_UNIX_CLOCK", "");
+        if (self.rgfw_no_dwm) mod.addCMacro("RGFW_NO_DWM", "");
+        if (self.rgfw_use_xdl) mod.addCMacro("RGFW_USE_XDL", "");
+        if (self.rgfw_cocoa_graphics_switching) mod.addCMacro("RGFW_COCOA_GRAPHICS_SWITCHING", "");
+        if (self.rgfw_no_dpi) mod.addCMacro("RGFW_NO_DPI", "");
+        if (self.rgfw_advanced_smooth_resize) mod.addCMacro("RGFW_ADVANCED_SMOOTH_RESIZE", "");
+        if (self.rgfw_no_info) mod.addCMacro("RGFW_NO_INFO", "");
+        if (self.rgfw_no_glxwindow) mod.addCMacro("RGFW_NO_GLXWINDOW", "");
+        if (self.rgfw_no_allocate_monitors) mod.addCMacro("RGFW_NO_ALLOCATE_MONITORS", "");
+        if (self.rgfw_no_include_vulkan) mod.addCMacro("RGFW_NO_INCLUDE_VULKAN", "");
+        if (self.rgfw_use_int) mod.addCMacro("RGFW_USE_INT", "");
+        if (self.rgfw_no_math) mod.addCMacro("RGFW_NO_MATH", "");
+        if (self.rgfw_no_passthrough) mod.addCMacro("RGFW_NO_PASSTHROUGH", "");
+        if (self.rgfw_custom_backend) mod.addCMacro("RGFW_CUSTOM_BACKEND", "");
+        if (self.rgfw_libdecor) mod.addCMacro("RGFW_LIBDECOR", "");
+        if (self.rgfw_x11_crash_on_error) mod.addCMacro("RGFW_X11_CRASH_ON_ERROR", "");
+        if (self.rgfw_win95) mod.addCMacro("RGFW_WIN95", "");
+        if (self.rgfw_c89) mod.addCMacro("RGFW_C89", "");
+        if (self.rgfw_dynamic) mod.addCMacro("RGFW_DYNAMIC", "");
+        if (self.rgfw_macos) mod.addCMacro("RGFW_MACOS", "");
+        if (self.rgfw_macos_x11) mod.addCMacro("RGFW_MACOS_X11", "");
+        if (self.rgfw_unix) mod.addCMacro("RGFW_UNIX", "");
+        if (self.rgfw_wasm) mod.addCMacro("RGFW_WASM", "");
+        if (self.rgfw_windows) mod.addCMacro("RGFW_WINDOWS", "");
+        if (self.rgfw_cocoa_frame_name) |val| mod.addCMacro("RGFW_COCOA_FRAME_NAME", val);
+        if (self.rgfw_alloc) |val| mod.addCMacro("RGFW_ALLOC", val);
+        if (self.rgfw_free) |val| mod.addCMacro("RGFW_FREE", val);
+        if (self.rgfw_userptr) |val| mod.addCMacro("RGFW_USERPTR", val);
+        if (self.rgfw_export) |val| mod.addCMacro("RGFW_EXPORT", val);
+        if (self.rgfw_import) |val| mod.addCMacro("RGFW_IMPORT", val);
+        if (self.rgfw_bool_type) |val| mod.addCMacro("RGFW_bool", val);
+        if (self.rgfw_assert) |val| mod.addCMacro("RGFW_ASSERT", val);
+        if (self.rgfw_static_assert) |val| mod.addCMacro("RGFW_STATIC_ASSERT", val);
+        if (self.rgfw_snprintf) |val| mod.addCMacro("RGFW_SNPRINTF", val);
+        if (self.rgfw_printf) |val| mod.addCMacro("RGFW_PRINTF", val);
+        if (self.rgfw_memzero) |val| mod.addCMacro("RGFW_MEMZERO", val);
+        if (self.rgfw_memcpy) |val| mod.addCMacro("RGFW_MEMCPY", val);
+        if (self.rgfw_strncmp) |val| mod.addCMacro("RGFW_STRNCMP", val);
+        if (self.rgfw_strncpy) |val| mod.addCMacro("RGFW_STRNCPY", val);
+        if (self.rgfw_strstr) |val| mod.addCMacro("RGFW_STRSTR", val);
+        if (self.rgfw_strtol) |val| mod.addCMacro("RGFW_STRTOL", val);
+        if (self.rgfw_atof) |val| mod.addCMacro("RGFW_ATOF", val);
+        if (self.rgfw_round) |val| mod.addCMacro("RGFW_ROUND", val);
+        if (self.rgfw_roundf) |val| mod.addCMacro("RGFW_ROUNDF", val);
+        if (self.rgfw_min) |val| mod.addCMacro("RGFW_MIN", val);
+        if (self.rgfw_unused) |val| mod.addCMacro("RGFW_UNUSED", val);
+        if (self.rgfw_preallocated_monitors) |val| mod.addCMacro("RGFW_PREALLOCATED_MONITORS", b.fmt("{d}", .{val}));
+        if (self.rgfw_max_events) |val| mod.addCMacro("RGFW_MAX_EVENTS", b.fmt("{d}", .{val}));
+        if (self.rgfw_xdnd_version) |val| mod.addCMacro("RGFW_XDND_VERSION", b.fmt("{d}", .{val}));
+
+        return mod;
     }
 };
 
