@@ -1046,8 +1046,11 @@ pub const AttribStack = extern struct {
 
 /// Generic function pointer returned by OpenGL/EGL proc-address queries.
 pub const Proc = c.RGFW_proc;
-/// Function pointer type for loading OpenGL/EGL/Vulkan procedures by name.
-pub const ProcLoader = *const fn ([:0]const u8) callconv(.c) Proc;
+/// Function pointer type for loading OpenGL/EGL procedures by name.
+/// Matches `gl.types.LoadFn` (`[*:0]const u8` + `callconv(.c)` + `?*const anyopaque`)
+/// so `rgfw.opengl.getProcAddress` / `rgfw.egl.getProcAddress` can be passed
+/// directly to `gl.loader.load`.
+pub const ProcLoader = *const fn ([*:0]const u8) callconv(.c) ?*const anyopaque;
 
 /// Convert a Zig `bool` to a C `RGFW_bool` (u8: 0 or 1).
 fn boolToC(value: bool) c.RGFW_bool {
@@ -2457,12 +2460,13 @@ pub const opengl = struct {
     }
 
     /// Get a native OpenGL function pointer by name.
-    pub fn getProcAddress(procname: [:0]const u8) Proc {
+    /// Signature matches `gl.types.LoadFn` for direct use in `gl.loader.load`.
+    pub fn getProcAddress(procname: [*:0]const u8) callconv(.c) ?*const anyopaque {
         if (comptime !opts.rgfw_opengl) {
             warn("Attempt to use function rgfw.opengl.getProcAddress without setting option rgfw_opengl", .{});
-            return @as(Proc, undefined);
+            return undefined;
         }
-        return c.RGFW_getProcAddress_OpenGL(procname.ptr);
+        return @ptrCast(c.RGFW_getProcAddress_OpenGL(procname));
     }
 
     /// Check if an OpenGL extension is supported in the current context.
@@ -2625,12 +2629,13 @@ pub const egl = struct {
     }
 
     /// Get a native OpenGL/ES function pointer via EGL.
-    pub fn getProcAddress(procname: [:0]const u8) Proc {
+    /// Signature matches `gl.types.LoadFn` for direct use in `gl.loader.load`.
+    pub fn getProcAddress(procname: [*:0]const u8) callconv(.c) ?*const anyopaque {
         if (comptime !opts.rgfw_egl) {
             warn("Attempt to use function rgfw.egl.getProcAddress without setting option rgfw_egl", .{});
-            return @as(Proc, undefined);
+            return undefined;
         }
-        return c.RGFW_getProcAddress_EGL(procname.ptr);
+        return @ptrCast(c.RGFW_getProcAddress_EGL(procname));
     }
 
     /// Check if an OpenGL/ES extension is supported in the current EGL context.
