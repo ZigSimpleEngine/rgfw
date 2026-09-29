@@ -11658,6 +11658,18 @@ void RGFW_initKeycodesPlatform(void) {
 }
 
 
+/* Creates a guaranteed-invisible 1x1 cursor (AND = 1, XOR = 0 => fully
+ * transparent). Used for the hidden mouse instead of RGFW_createMouse with a
+ * zeroed 1x1 image: that path goes through RGFW_loadHandleImage, whose
+ * CreateDIBSection uses BI_RGB (alpha ignored) together with an all-zero AND
+ * mask, which renders as a single opaque black pixel. */
+static RGFW_mouse* RGFW_createHiddenMouse_WIN32(void) {
+	/* Monochrome planes are WORD-aligned per row: 2 bytes per 1x1 plane. */
+	static const BYTE RGFW_hiddenAnd[2] = { 0xFF, 0x00 };
+	static const BYTE RGFW_hiddenXor[2] = { 0x00, 0x00 };
+	return (RGFW_mouse*)CreateCursor(_RGFW->instance, 0, 0, 1, 1, RGFW_hiddenAnd, RGFW_hiddenXor);
+}
+
 i32 RGFW_initPlatform(const char* className, RGFW_initFlags flags) {
 	RGFW_UNUSED(flags);
 #ifndef RGFW_NO_DPI
@@ -11700,8 +11712,7 @@ i32 RGFW_initPlatform(const char* className, RGFW_initFlags flags) {
 
 	_RGFW->helperWindow = CreateWindowW(_RGFW->wndClass.lpszClassName, (wchar_t*)NULL, 0, 0, 0, 0, 0, 0, 0, _RGFW->instance, 0);
 
-	u8 RGFW_blk[] = { 0, 0, 0, 0 };
-	_RGFW->hiddenMouse = RGFW_createMouse(RGFW_blk, 1, 1, RGFW_formatRGBA8);
+	_RGFW->hiddenMouse = RGFW_createHiddenMouse_WIN32();
     return 0;
 }
 
