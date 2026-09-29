@@ -168,143 +168,276 @@ pub const WlEglWindow = opaque {};
 
 /// Abstract physical keycode (platform-independent mapping).
 pub const Key = enum(u8) {
+    /// No key / empty keycode.
     none = c.RGFW_keyNULL,
+    /// Escape key.
     escape = c.RGFW_keyEscape,
+    /// Backtick / grave accent key.
     backtick = c.RGFW_keyBacktick,
+    /// Space bar.
     space = c.RGFW_keySpace,
+    /// Enter / return key (main block).
     enter = c.RGFW_keyEnter,
+    /// Tab key.
     tab = c.RGFW_keyTab,
+    /// Backspace key.
     backspace = c.RGFW_keyBackSpace,
+    /// Delete key.
     delete = c.RGFW_keyDelete,
+    /// Minus / hyphen key.
     minus = c.RGFW_keyMinus,
+    /// Equal key.
     equal = c.RGFW_keyEqual,
+    /// Period key.
     period = c.RGFW_keyPeriod,
+    /// Comma key.
     comma = c.RGFW_keyComma,
+    /// Slash key.
     slash = c.RGFW_keySlash,
+    /// Open bracket key.
     bracket = c.RGFW_keyBracket,
+    /// Close bracket key.
     close_bracket = c.RGFW_keyCloseBracket,
+    /// Semicolon key.
     semicolon = c.RGFW_keySemicolon,
+    /// Apostrophe key.
     apostrophe = c.RGFW_keyApostrophe,
+    /// Backslash key.
     backslash = c.RGFW_keyBackSlash,
+    /// Caps lock toggle key.
     caps_lock = c.RGFW_keyCapsLock,
+    /// Left shift modifier.
     shift_left = c.RGFW_keyShiftL,
+    /// Left control modifier.
     control_left = c.RGFW_keyControlL,
+    /// Left alt / option modifier.
     alt_left = c.RGFW_keyAltL,
+    /// Left super / windows / command modifier.
     super_left = c.RGFW_keySuperL,
+    /// Right shift modifier.
     shift_right = c.RGFW_keyShiftR,
+    /// Right control modifier.
     control_right = c.RGFW_keyControlR,
+    /// Right alt / option modifier.
     alt_right = c.RGFW_keyAltR,
+    /// Right super / windows / command modifier.
     super_right = c.RGFW_keySuperR,
+    /// Up arrow key.
     up = c.RGFW_keyUp,
+    /// Down arrow key.
     down = c.RGFW_keyDown,
+    /// Left arrow key.
     left = c.RGFW_keyLeft,
+    /// Right arrow key.
     right = c.RGFW_keyRight,
+    /// Insert key.
     insert = c.RGFW_keyInsert,
+    /// Menu / application key.
     menu = c.RGFW_keyMenu,
+    /// Home key.
     home = c.RGFW_keyHome,
+    /// End key.
     end = c.RGFW_keyEnd,
+    /// Page up key.
     page_up = c.RGFW_keyPageUp,
+    /// Page down key.
     page_down = c.RGFW_keyPageDown,
+    /// Num lock toggle key.
     num_lock = c.RGFW_keyNumLock,
+    /// Numpad slash key.
     pad_slash = c.RGFW_keyPadSlash,
+    /// Numpad multiply key.
     pad_multiply = c.RGFW_keyPadMultiply,
+    /// Numpad plus key.
     pad_plus = c.RGFW_keyPadPlus,
+    /// Numpad minus key.
     pad_minus = c.RGFW_keyPadMinus,
+    /// Numpad equal key.
     pad_equal = c.RGFW_keyPadEqual,
+    /// Numpad digit 1.
     pad_1 = c.RGFW_keyPad1,
+    /// Numpad digit 2.
     pad_2 = c.RGFW_keyPad2,
+    /// Numpad digit 3.
     pad_3 = c.RGFW_keyPad3,
+    /// Numpad digit 4.
     pad_4 = c.RGFW_keyPad4,
+    /// Numpad digit 5.
     pad_5 = c.RGFW_keyPad5,
+    /// Numpad digit 6.
     pad_6 = c.RGFW_keyPad6,
+    /// Numpad digit 7.
     pad_7 = c.RGFW_keyPad7,
+    /// Numpad digit 8.
     pad_8 = c.RGFW_keyPad8,
+    /// Numpad digit 9.
     pad_9 = c.RGFW_keyPad9,
+    /// Numpad digit 0.
     pad_0 = c.RGFW_keyPad0,
+    /// Numpad period key.
     pad_period = c.RGFW_keyPadPeriod,
+    /// Numpad enter key.
     pad_return = c.RGFW_keyPadReturn,
+    /// Scroll lock toggle key.
     scroll_lock = c.RGFW_keyScrollLock,
+    /// Print screen key.
     print_screen = c.RGFW_keyPrintScreen,
+    /// Pause / break key.
     pause = c.RGFW_keyPause,
+    /// Extra international key 1.
     world_1 = c.RGFW_keyWorld1,
+    /// Extra international key 2.
     world_2 = c.RGFW_keyWorld2,
+    /// Letter A key (physical position, layout-independent).
     a = c.RGFW_keyA,
+    /// Letter B key.
     b = c.RGFW_keyB,
+    /// Letter C key.
     c = c.RGFW_keyC,
+    /// Letter D key.
     d = c.RGFW_keyD,
+    /// Letter E key.
     e = c.RGFW_keyE,
+    /// Letter F key.
     f = c.RGFW_keyF,
+    /// Letter G key.
     g = c.RGFW_keyG,
+    /// Letter H key.
     h = c.RGFW_keyH,
+    /// Letter I key.
     i = c.RGFW_keyI,
+    /// Letter J key.
     j = c.RGFW_keyJ,
+    /// Letter K key.
     k = c.RGFW_keyK,
+    /// Letter L key.
     l = c.RGFW_keyL,
+    /// Letter M key.
     m = c.RGFW_keyM,
+    /// Letter N key.
     n = c.RGFW_keyN,
+    /// Letter O key.
     o = c.RGFW_keyO,
+    /// Letter P key.
     p = c.RGFW_keyP,
+    /// Letter Q key.
     q = c.RGFW_keyQ,
+    /// Letter R key.
     r = c.RGFW_keyR,
+    /// Letter S key.
     s = c.RGFW_keyS,
+    /// Letter T key.
     t = c.RGFW_keyT,
+    /// Letter U key.
     u = c.RGFW_keyU,
+    /// Letter V key.
     v = c.RGFW_keyV,
+    /// Letter W key.
     w = c.RGFW_keyW,
+    /// Letter X key.
     x = c.RGFW_keyX,
+    /// Letter Y key.
     y = c.RGFW_keyY,
+    /// Letter Z key.
     z = c.RGFW_keyZ,
+    /// Digit 0 key (top row).
     _0 = c.RGFW_key0,
+    /// Digit 1 key (top row).
     _1 = c.RGFW_key1,
+    /// Digit 2 key (top row).
     _2 = c.RGFW_key2,
+    /// Digit 3 key (top row).
     _3 = c.RGFW_key3,
+    /// Digit 4 key (top row).
     _4 = c.RGFW_key4,
+    /// Digit 5 key (top row).
     _5 = c.RGFW_key5,
+    /// Digit 6 key (top row).
     _6 = c.RGFW_key6,
+    /// Digit 7 key (top row).
     _7 = c.RGFW_key7,
+    /// Digit 8 key (top row).
     _8 = c.RGFW_key8,
+    /// Digit 9 key (top row).
     _9 = c.RGFW_key9,
+    /// Function key F1.
     f1 = c.RGFW_keyF1,
+    /// Function key F2.
     f2 = c.RGFW_keyF2,
+    /// Function key F3.
     f3 = c.RGFW_keyF3,
+    /// Function key F4.
     f4 = c.RGFW_keyF4,
+    /// Function key F5.
     f5 = c.RGFW_keyF5,
+    /// Function key F6.
     f6 = c.RGFW_keyF6,
+    /// Function key F7.
     f7 = c.RGFW_keyF7,
+    /// Function key F8.
     f8 = c.RGFW_keyF8,
+    /// Function key F9.
     f9 = c.RGFW_keyF9,
+    /// Function key F10.
     f10 = c.RGFW_keyF10,
+    /// Function key F11.
     f11 = c.RGFW_keyF11,
+    /// Function key F12.
     f12 = c.RGFW_keyF12,
+    /// Function key F13 (extended).
     f13 = c.RGFW_keyF13,
+    /// Function key F14 (extended).
     f14 = c.RGFW_keyF14,
+    /// Function key F15 (extended).
     f15 = c.RGFW_keyF15,
+    /// Function key F16 (extended).
     f16 = c.RGFW_keyF16,
+    /// Function key F17 (extended).
     f17 = c.RGFW_keyF17,
+    /// Function key F18 (extended).
     f18 = c.RGFW_keyF18,
+    /// Function key F19 (extended).
     f19 = c.RGFW_keyF19,
+    /// Function key F20 (extended).
     f20 = c.RGFW_keyF20,
+    /// Function key F21 (extended).
     f21 = c.RGFW_keyF21,
+    /// Function key F22 (extended).
     f22 = c.RGFW_keyF22,
+    /// Function key F23 (extended).
     f23 = c.RGFW_keyF23,
+    /// Function key F24 (extended).
     f24 = c.RGFW_keyF24,
+    /// Function key F25 (extended).
     f25 = c.RGFW_keyF25,
+    /// Sentinel marking the end of the key range.
     last = 255,
 
+    /// Alias for `equal`.
     pub const equals = c.RGFW_keyEquals;
+    /// Alias for `enter`.
     pub const return_key = c.RGFW_keyReturn;
+    /// Alias for `pad_equal`.
     pub const pad_equals = c.RGFW_keyPadEquals;
 };
 
 /// Abstract mouse button identifier.
 pub const MouseButton = enum(u8) {
+    /// Primary (usually left) button.
     left = c.RGFW_mouseLeft,
+    /// Middle button / wheel click.
     middle = c.RGFW_mouseMiddle,
+    /// Secondary (usually right) button.
     right = c.RGFW_mouseRight,
+    /// Extra button 1 (e.g. side back).
     misc1 = c.RGFW_mouseMisc1,
+    /// Extra button 2 (e.g. side forward).
     misc2 = c.RGFW_mouseMisc2,
+    /// Extra button 3.
     misc3 = c.RGFW_mouseMisc3,
+    /// Extra button 4.
     misc4 = c.RGFW_mouseMisc4,
+    /// Extra button 5.
     misc5 = c.RGFW_mouseMisc5,
     /// Total number of mouse button identifiers.
     pub const final: comptime_int = c.RGFW_mouseFinal;
@@ -312,15 +445,23 @@ pub const MouseButton = enum(u8) {
 
 /// Bitmask of active key modifiers (CapsLock, Shift, Ctrl, Alt, Super, etc.).
 pub const KeyMod = packed struct(u8) {
+    /// Caps lock is active.
     capsLock: bool = false,
+    /// Num lock is active.
     numLock: bool = false,
+    /// Control modifier is held.
     control: bool = false,
+    /// Alt / option modifier is held.
     alt: bool = false,
+    /// Shift modifier is held.
     shift: bool = false,
+    /// Super / windows / command modifier is held.
     super_key: bool = false,
+    /// Scroll lock is active.
     scrollLock: bool = false,
     _: u1 = 0,
 
+    /// No modifiers active.
     pub const none: @This() = KeyMod{};
 };
 
@@ -337,21 +478,85 @@ pub const InitFlags = packed struct(u8) {
     _: u4 = 0,
 };
 
-pub const ColorRGB = packed struct(u24) { r: u8 = 0, g: u8 = 0, b: u8 = 0 };
-pub const ColorBGR = packed struct(u24) { b: u8 = 0, g: u8 = 0, r: u8 = 0 };
-pub const ColorRGBA = packed struct(u32) { r: u8 = 0, g: u8 = 0, b: u8 = 0, a: u8 = 0xFF };
-pub const ColorARGB = packed struct(u32) { a: u8 = 0xFF, r: u8 = 0, g: u8 = 0, b: u8 = 0 };
-pub const ColorBGRA = packed struct(u32) { b: u8 = 0, g: u8 = 0, r: u8 = 0, a: u8 = 0xFF };
-pub const ColorABGR = packed struct(u32) { a: u8 = 0xFF, b: u8 = 0, g: u8 = 0, r: u8 = 0 };
+/// 24-bit RGB pixel (R, G, B order).
+pub const ColorRGB = packed struct(u24) {
+    /// Red channel (0-255).
+    r: u8 = 0,
+    /// Green channel (0-255).
+    g: u8 = 0,
+    /// Blue channel (0-255).
+    b: u8 = 0,
+};
+/// 24-bit BGR pixel (B, G, R order).
+pub const ColorBGR = packed struct(u24) {
+    /// Blue channel (0-255).
+    b: u8 = 0,
+    /// Green channel (0-255).
+    g: u8 = 0,
+    /// Red channel (0-255).
+    r: u8 = 0,
+};
+/// 32-bit RGBA pixel (R, G, B, A order).
+pub const ColorRGBA = packed struct(u32) {
+    /// Red channel (0-255).
+    r: u8 = 0,
+    /// Green channel (0-255).
+    g: u8 = 0,
+    /// Blue channel (0-255).
+    b: u8 = 0,
+    /// Alpha channel (0-255, opaque by default).
+    a: u8 = 0xFF,
+};
+/// 32-bit ARGB pixel (A, R, G, B order).
+pub const ColorARGB = packed struct(u32) {
+    /// Alpha channel (0-255, opaque by default).
+    a: u8 = 0xFF,
+    /// Red channel (0-255).
+    r: u8 = 0,
+    /// Green channel (0-255).
+    g: u8 = 0,
+    /// Blue channel (0-255).
+    b: u8 = 0,
+};
+/// 32-bit BGRA pixel (B, G, R, A order).
+pub const ColorBGRA = packed struct(u32) {
+    /// Blue channel (0-255).
+    b: u8 = 0,
+    /// Green channel (0-255).
+    g: u8 = 0,
+    /// Red channel (0-255).
+    r: u8 = 0,
+    /// Alpha channel (0-255, opaque by default).
+    a: u8 = 0xFF,
+};
+/// 32-bit ABGR pixel (A, B, G, R order).
+pub const ColorABGR = packed struct(u32) {
+    /// Alpha channel (0-255, opaque by default).
+    a: u8 = 0xFF,
+    /// Blue channel (0-255).
+    b: u8 = 0,
+    /// Green channel (0-255).
+    g: u8 = 0,
+    /// Red channel (0-255).
+    r: u8 = 0,
+};
 
+/// Pixel byte layout: 3 channels for RGB/BGR, 4 for RGBA/ARGB/BGRA/ABGR.
 pub const Format = enum(u8) {
+    /// R, G, B bytes.
     rgb8 = c.RGFW_formatRGB8,
+    /// B, G, R bytes.
     bgr8 = c.RGFW_formatBGR8,
+    /// R, G, B, A bytes.
     rgba8 = c.RGFW_formatRGBA8,
+    /// A, R, G, B bytes.
     argb8 = c.RGFW_formatARGB8,
+    /// B, G, R, A bytes.
     bgra8 = c.RGFW_formatBGRA8,
+    /// A, B, G, R bytes.
     abgr8 = c.RGFW_formatABGR8,
 
+    /// Total number of pixel formats.
     pub const count: comptime_int = c.RGFW_formatCount;
 
     pub fn Color(format: Format) type {
@@ -372,27 +577,41 @@ pub const Format = enum(u8) {
 
 /// Monitor mode request flags (scale, refresh rate, RGB bit depth).
 pub const ModeRequest = enum(u8) {
+    /// Match resolution (w, h) in `requestMode` / `modeCompare`.
     scale = c.RGFW_monitorScale,
+    /// Match refresh rate in `requestMode` / `modeCompare`.
     refresh = c.RGFW_monitorRefresh,
+    /// Match RGB bit depth in `requestMode` / `modeCompare`.
     rgb = c.RGFW_monitorRGB,
+    /// Match scale + refresh + RGB (Scale | Refresh | RGB).
     all = c.RGFW_monitorAll,
 };
 
 /// Drag-and-drop action type (enter, move, exit).
 pub const DndActionType = enum(u8) {
+    /// No drag action / idle.
     none = c.RGFW_dndActionNone,
+    /// Dragged pointer entered the window.
     enter = c.RGFW_dndActionEnter,
+    /// Dragged pointer moved inside the window.
     move = c.RGFW_dndActionMove,
+    /// Dragged pointer left the window.
     exit = c.RGFW_dndActionExit,
 };
 
 /// Type of transferred data (text, file, URL, image, unknown).
 pub const DataTransferType = enum(u8) {
+    /// Empty / no data.
     none = c.RGFW_dataNone,
+    /// Plain text string.
     text = c.RGFW_dataText,
+    /// File path string.
     file = c.RGFW_dataFile,
+    /// URL string.
     url = c.RGFW_dataURL,
+    /// Raw image data.
     image = c.RGFW_dataImage,
+    /// Unrecognized raw data.
     unknown = c.RGFW_dataUnknown,
 };
 
@@ -453,60 +672,107 @@ pub const EventType = enum(u8) {
 };
 /// Bitmask of event types to enable or disable.
 pub const EventFlag = packed struct(u32) {
-    _unused: bool = false, // bit 0 (RGFW_eventNone)
-    key_pressed: bool = false, // bit 1
-    key_released: bool = false, // bit 2
-    key_char: bool = false, // bit 3
-    mouse_button_pressed: bool = false, // bit 4
-    mouse_button_released: bool = false, // bit 5
-    mouse_scroll: bool = false, // bit 6
-    mouse_motion: bool = false, // bit 7
-    mouse_raw_motion: bool = false, // bit 8
-    mouse_enter: bool = false, // bit 9
-    mouse_leave: bool = false, // bit 10
-    window_moved: bool = false, // bit 11
-    window_resized: bool = false, // bit 12
-    window_focus_in: bool = false, // bit 13
-    window_focus_out: bool = false, // bit 14
-    window_refresh: bool = false, // bit 15
-    window_close: bool = false, // bit 16
-    window_maximized: bool = false, // bit 17
-    window_minimized: bool = false, // bit 18
-    window_restored: bool = false, // bit 19
-    data_drop: bool = false, // bit 20
-    data_drag: bool = false, // bit 21
-    scale_updated: bool = false, // bit 22
-    monitor_connected: bool = false, // bit 23
-    monitor_disconnected: bool = false, // bit 24
+    /// Unused bit 0 (`eventNone`).
+    _unused: bool = false,
+    /// Enable `keyPressed` events.
+    key_pressed: bool = false,
+    /// Enable `keyReleased` events.
+    key_released: bool = false,
+    /// Enable `keyChar` events.
+    key_char: bool = false,
+    /// Enable `mouseButtonPressed` events.
+    mouse_button_pressed: bool = false,
+    /// Enable `mouseButtonReleased` events.
+    mouse_button_released: bool = false,
+    /// Enable `mouseScroll` events.
+    mouse_scroll: bool = false,
+    /// Enable `mouseMotion` events.
+    mouse_motion: bool = false,
+    /// Enable `mouseRawMotion` events.
+    mouse_raw_motion: bool = false,
+    /// Enable `mouseEnter` events.
+    mouse_enter: bool = false,
+    /// Enable `mouseLeave` events.
+    mouse_leave: bool = false,
+    /// Enable `windowMoved` events.
+    window_moved: bool = false,
+    /// Enable `windowResized` events.
+    window_resized: bool = false,
+    /// Enable `windowFocusIn` events.
+    window_focus_in: bool = false,
+    /// Enable `windowFocusOut` events.
+    window_focus_out: bool = false,
+    /// Enable `windowRefresh` events.
+    window_refresh: bool = false,
+    /// Enable `windowClose` events.
+    window_close: bool = false,
+    /// Enable `windowMaximized` events.
+    window_maximized: bool = false,
+    /// Enable `windowMinimized` events.
+    window_minimized: bool = false,
+    /// Enable `windowRestored` events.
+    window_restored: bool = false,
+    /// Enable `dataDrop` events.
+    data_drop: bool = false,
+    /// Enable `dataDrag` events.
+    data_drag: bool = false,
+    /// Enable `scaleUpdated` events.
+    scale_updated: bool = false,
+    /// Enable `monitorConnected` events.
+    monitor_connected: bool = false,
+    /// Enable `monitorDisconnected` events.
+    monitor_disconnected: bool = false,
 
-    _padding: u7 = 0, // bits 25..31
+    /// Reserved padding bits 25..31.
+    _padding: u7 = 0,
 };
 /// Wait mode for event polling (no wait, wait for next event).
 pub const EventWait = enum(i32) {
+    /// Return immediately in `waitForEvent(0)`.
     eventNoWait = 0,
+    /// Block indefinitely for the next event in `waitForEvent(-1)`.
     eventWaitNext = -1,
 };
 
 /// Window creation and behavior flags — bit flags.
 pub const WindowFlags = packed struct(u32) {
+    /// Frameless window without decorations.
     noBorder: bool = false,
+    /// Disable user resizing (locks min/max size).
     noResize: bool = false,
+    /// Enable drag-and-drop events for the window.
     allowDnd: bool = false,
+    /// Start with the cursor hidden over the window.
     hideMouse: bool = false,
+    /// Start in exclusive fullscreen mode.
     fullscreen: bool = false,
+    /// Translucent / alpha-capable window (mainly X11 and macOS).
     translucent: bool = false,
+    /// Center the window on its monitor at creation.
     center: bool = false,
+    /// Enable raw (unaccelerated) mouse deltas.
     rawMouse: bool = false,
+    /// Resize the window by the monitor content scale.
     scaleToMonitor: bool = false,
+    /// Stay hidden after creation (otherwise auto-shown).
     hide: bool = false,
+    /// Start maximized.
     maximize: bool = false,
+    /// Warp the cursor to the window center at creation.
     centerCursor: bool = false,
+    /// Always-on-top floating window.
     floating: bool = false,
+    /// Auto-focus the window when shown.
     focusOnShow: bool = false,
+    /// Start minimized.
     minimize: bool = false,
+    /// Focus the window immediately at creation.
     focus: bool = false,
+    /// Confine the cursor to the window (capture + raw).
     captureMouse: bool = false,
+    /// Auto-create an OpenGL context with global hints.
     openGl: bool = false,
+    /// Auto-create an EGL context with global hints.
     egl: bool = false,
     _: u13 = 0,
 
@@ -520,35 +786,61 @@ pub const WindowFlags = packed struct(u32) {
 
 /// Target icon type (taskbar, window, or both).
 pub const Icon = enum(u8) {
+    /// Apply the icon to the taskbar / dock entry.
     taskbar = c.RGFW_iconTaskbar,
+    /// Apply the icon to the window title bar.
     window = c.RGFW_iconWindow,
+    /// Apply the icon to both taskbar and window.
     both = c.RGFW_iconBoth,
 };
 
 /// Standard system cursor icon identifier.
 pub const MouseIcon = enum(u8) {
+    /// Default system cursor.
     normal = c.RGFW_mouseNormal,
+    /// Arrow pointer (default).
     arrow = c.RGFW_mouseArrow,
+    /// Text caret.
     ibeam = c.RGFW_mouseIbeam,
+    /// Crosshair precision selector.
     crosshair = c.RGFW_mouseCrosshair,
+    /// Pointing hand (links).
     pointingHand = c.RGFW_mousePointingHand,
+    /// Horizontal resize.
     resizeEw = c.RGFW_mouseResizeEW,
+    /// Vertical resize.
     resizeNs = c.RGFW_mouseResizeNS,
+    /// Diagonal resize (NW-SE).
     resizeNwse = c.RGFW_mouseResizeNWSE,
+    /// Diagonal resize (NE-SW).
     resizeNesw = c.RGFW_mouseResizeNESW,
+    /// Resize toward north-west.
     resizeNw = c.RGFW_mouseResizeNW,
+    /// Resize toward north.
     resizeN = c.RGFW_mouseResizeN,
+    /// Resize toward north-east.
     resizeNe = c.RGFW_mouseResizeNE,
+    /// Resize toward east.
     resizeE = c.RGFW_mouseResizeE,
+    /// Resize toward south-east.
     resizeSe = c.RGFW_mouseResizeSE,
+    /// Resize toward south.
     resizeS = c.RGFW_mouseResizeS,
+    /// Resize toward south-west.
     resizeSw = c.RGFW_mouseResizeSW,
+    /// Resize toward west.
     resizeW = c.RGFW_mouseResizeW,
+    /// Move / resize in all directions.
     resizeAll = c.RGFW_mouseResizeAll,
+    /// Action not allowed.
     notAllowed = c.RGFW_mouseNotAllowed,
+    /// Busy indicator.
     wait = c.RGFW_mouseWait,
+    /// Busy with arrow (background work).
     progress = c.RGFW_mouseProgress,
+    /// Total number of mouse icon identifiers.
     pub const final: comptime_int = c.RGFW_mouseIconFinal;
+    /// Number of mouse icons.
     pub const count: comptime_int = c.RGFW_mouseIconCount;
     /// Alias for `ibeam`.
     pub const text: @This() = .ibeam;
@@ -556,61 +848,97 @@ pub const MouseIcon = enum(u8) {
 
 /// Window flash request type (cancel, briefly, until focused).
 pub const FlashRequest = enum(u8) {
+    /// Stop flashing the window.
     cancel = c.RGFW_flashCancel,
+    /// Flash once to grab attention.
     briefly = c.RGFW_flashBriefly,
+    /// Flash repeatedly until the window gains focus.
     untilFocused = c.RGFW_flashUntilFocused,
 };
 
 /// Debug message severity (error, warning, info).
 pub const DebugType = enum(u8) {
+    /// Error message.
     err = c.RGFW_typeError,
+    /// Warning message.
     warning = c.RGFW_typeWarning,
+    /// Informational message.
     info = c.RGFW_typeInfo,
 };
 
 /// Specific error or informational code.
 pub const ErrorCode = enum(u8) {
+    /// No error / success.
     none = c.RGFW_noError,
+    /// Memory allocation failed.
     outOfMemory = c.RGFW_errOutOfMemory,
+    /// Native OpenGL visual or context creation failed.
     openGlContext = c.RGFW_errOpenGLContext,
+    /// EGL visual, context, or surface creation failed.
     eglContext = c.RGFW_errEGLContext,
+    /// Wayland display or compositor failure.
     wayland = c.RGFW_errWayland,
+    /// X11 protocol or gamma-ramp error.
     x11 = c.RGFW_errX11,
+    /// DirectX swap-chain creation failed.
     directxContext = c.RGFW_errDirectXContext,
+    /// macOS IOKit failure (reserved).
     ioKit = c.RGFW_errIOKit,
+    /// Clipboard ownership or data-source failure.
     clipboard = c.RGFW_errClipboard,
+    /// Dynamic OpenGL / EGL / Vulkan library load failed.
     failedFuncLoad = c.RGFW_errFailedFuncLoad,
+    /// Native image / shm / DIB buffer creation failed.
     buffer = c.RGFW_errBuffer,
+    /// macOS Metal surface has a null view.
     metal = c.RGFW_errMetal,
+    /// Platform layer failed to create the window.
     platform = c.RGFW_errPlatform,
+    /// Event queue overflowed and was flushed.
     eventQueue = c.RGFW_errEventQueue,
+    /// Library used before initialization (reserved).
     noInit = c.RGFW_errNoInit,
+    /// Window created / freed notification.
     infoWindow = c.RGFW_infoWindow,
+    /// Wayland 4-channel buffer creation notification.
     infoBuffer = c.RGFW_infoBuffer,
+    /// Global context init / deinit notification.
     infoGlobal = c.RGFW_infoGlobal,
+    /// OpenGL / EGL context init / free notification.
     infoOpenGl = c.RGFW_infoOpenGL,
+    /// Wayland fallback / experimental notice.
     warningWayland = c.RGFW_warningWayland,
+    /// OpenGL unsupported / visual fallback notice.
     warningOpenGl = c.RGFW_warningOpenGL,
 };
 
 /// OpenGL context release behavior hint.
 pub const GlReleaseBehavior = enum(i32) {
+    /// Flush the pipeline on context release.
     flush = c.RGFW_glReleaseFlush,
+    /// No flush on context release.
     none = c.RGFW_glReleaseNone,
 };
 
 /// OpenGL profile hint (core, compat, ES, forward-compat).
 pub const GlProfile = enum(i32) {
+    /// Core profile for the requested version.
     core = c.RGFW_glCore,
+    /// Forward-compatible with newer versions.
     forwardCompatibility = c.RGFW_glForwardCompatibility,
+    /// Compatibility with older fixed-function API.
     compatibility = c.RGFW_glCompatibility,
+    /// OpenGL ES profile.
     es = c.RGFW_glES,
+    /// WebGL profile (mapped to a GLES equivalent).
     web = c.RGFW_glWeb,
 };
 
 /// OpenGL renderer hint (accelerated, software).
 pub const GlRenderer = enum(i32) {
+    /// Hardware GPU rendering.
     accelerated = c.RGFW_glAccelerated,
+    /// CPU software rasterizer.
     software = c.RGFW_glSoftware,
 };
 
@@ -712,23 +1040,33 @@ pub const MouseVector = struct {
     pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
+/// Raw image descriptor used for surfaces, cursors, and icons.
 pub const ImageInfo = struct {
+    /// Pixel bytes in `format` layout.
     data: []u8,
+    /// Image width in pixels.
     w: i32,
+    /// Image height in pixels.
     h: i32,
+    /// Pixel byte layout of `data`.
     format: Format,
 };
 
+/// Typed image with pixel storage for `image_format` (allocates via a GPA).
 pub fn Image(comptime image_format: Format) type {
     const color_type = image_format.Color();
 
     return struct {
         const Self = @This();
 
+        /// Raw descriptor over `color_data`.
         info: ImageInfo,
+        /// Typed pixel storage backing `info.data`.
         color_data: []Color,
 
+        /// Pixel type for this image.
         pub const Color = color_type;
+        /// Pixel format of this image.
         pub const format = image_format;
 
         pub fn init(gpa: std.mem.Allocator, width: i32, height: i32) !Self {
@@ -760,108 +1098,174 @@ pub fn Image(comptime image_format: Format) type {
     };
 }
 
+/// Generic event header (type + target window).
 pub const CommonEvent = extern struct {
+    /// Event discriminator.
     type: EventType = .none,
+    /// Target window, if any.
     win: ?*Window = null,
     pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
+/// Focus gain / loss event.
 pub const WindowFocusEvent = extern struct {
+    /// Event discriminator.
     type: EventType = .none,
+    /// Target window.
     win: ?*Window = null,
+    /// True on focus-in, false on focus-out.
     state: bool = false,
     pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
+/// Mouse button press / release event.
 pub const MouseButtonEvent = extern struct {
+    /// Event discriminator.
     type: EventType = .none,
+    /// Target window.
     win: ?*Window = null,
+    /// Pressed / released button.
     value: MouseButton = .left,
+    /// True on press, false on release.
     state: bool = false,
     pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
+/// Scroll / raw-motion delta event.
 pub const MouseDeltaEvent = extern struct {
+    /// Event discriminator.
     type: EventType = .none,
+    /// Target window.
     win: ?*Window = null,
+    /// Horizontal delta (scroll columns / raw dx).
     x: f32 = 0,
+    /// Vertical delta (scroll rows / raw dy).
     y: f32 = 0,
     pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
+/// Mouse move / enter / leave event.
 pub const MouseMotionEvent = extern struct {
+    /// Event discriminator.
     type: EventType = .none,
+    /// Target window.
     win: ?*Window = null,
+    /// Cursor X in client coordinates.
     x: i32 = 0,
+    /// Cursor Y in client coordinates.
     y: i32 = 0,
+    /// True if the cursor is inside the window.
     inWindow: bool = false,
     pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
+/// Physical key press / release event.
 pub const KeyEvent = extern struct {
+    /// Event discriminator.
     type: EventType = .none,
+    /// Target window.
     win: ?*Window = null,
+    /// Physical key code.
     value: Key = .none,
+    /// True for auto-repeat presses.
     repeat: bool = false,
+    /// Active modifiers.
     mod: KeyMod = .none,
+    /// True on press, false on release.
     state: bool = false,
     pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
+/// UTF-8 character input event.
 pub const KeyCharEvent = extern struct {
+    /// Event discriminator.
     type: EventType = .none,
+    /// Target window.
     win: ?*Window = null,
+    /// Unicode codepoint.
     value: u32 = 0,
     pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
 /// A single node in the linked list of dropped data items.
 pub const DataDropNode = extern struct {
+    /// Item bytes.
     data: [*c]const u8 = null,
+    /// Byte length of `data`.
     length: usize = 0,
+    /// Payload type.
     type: DataTransferType = .none,
+    /// Next item in the drop list.
     next: [*c]DataDropNode = null,
     pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
+/// Data-dropped-onto-window event.
 pub const DataDropEvent = extern struct {
+    /// Event discriminator.
     type: EventType = .none,
+    /// Target window.
     win: ?*Window = null,
+    /// Head of the dropped-items list.
     value: [*c]const DataDropNode = null,
     pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
+/// Drag-and-drop progress event.
 pub const DataDragEvent = extern struct {
+    /// Event discriminator.
     type: EventType = .none,
+    /// Target window.
     win: ?*Window = null,
+    /// Drag cursor X in client coordinates.
     x: i32 = 0,
+    /// Drag cursor Y in client coordinates.
     y: i32 = 0,
+    /// Enter / move / exit phase.
     action: DndActionType = .none,
+    /// Payload type being dragged.
     dataType: DataTransferType = .none,
     pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
+/// Content-scale (DPI) change event.
 pub const ScaleUpdatedEvent = extern struct {
+    /// Event discriminator.
     type: EventType = .none,
+    /// Target window.
     win: ?*Window = null,
+    /// New horizontal scale factor.
     x: f32 = 0,
+    /// New vertical scale factor.
     y: f32 = 0,
     pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
+/// Monitor connect / disconnect event.
 pub const MonitorEvent = extern struct {
+    /// Event discriminator.
     type: EventType = .none,
+    /// Target window, if any.
     win: ?*Window = null,
+    /// Affected monitor.
     monitor: ?*const Monitor = null,
+    /// True on connect, false on disconnect.
     state: bool = false,
     pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
+/// Window move / resize / refresh / state event.
 pub const WindowUpdateEvent = extern struct {
+    /// Event discriminator.
     type: EventType = .none,
+    /// Target window.
     win: ?*Window = null,
+    /// Window X in screen coordinates.
     x: i32 = 0,
+    /// Window Y in screen coordinates.
     y: i32 = 0,
+    /// Window width.
     w: i32 = 0,
+    /// Window height.
     h: i32 = 0,
     pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
@@ -888,18 +1292,31 @@ pub fn eventQueuePushAndCall(event: *const Event) void {
 
 /// Union of all possible event types. Use the `type` field to discriminate.
 pub const Event = extern union {
+    /// Discriminator shared by all event payloads.
     type: EventType,
+    /// Generic header view.
     common: CommonEvent,
+    /// Focus event payload.
     windowFocus: WindowFocusEvent,
+    /// Move / resize / state payload.
     windowUpdate: WindowUpdateEvent,
+    /// Button press / release payload.
     mouseButton: MouseButtonEvent,
+    /// Scroll / raw-motion payload.
     mouseDelta: MouseDeltaEvent,
+    /// Motion / enter / leave payload.
     mouseMotion: MouseMotionEvent,
+    /// Key press / release payload.
     key: KeyEvent,
+    /// Character input payload.
     keyChar: KeyCharEvent,
+    /// Data-drop payload.
     dataDrop: DataDropEvent,
+    /// Drag-progress payload.
     dataDrag: DataDragEvent,
+    /// Scale-change payload.
     scaleUpdated: ScaleUpdatedEvent,
+    /// Monitor-change payload.
     monitor: MonitorEvent,
 
     pub fn format(
@@ -976,17 +1393,24 @@ extern fn RGFW_writeClipboard(data: *const DataTransfer) bool;
 
 /// Describes a clipboard data transfer (data pointer, length, type).
 pub const DataTransfer = extern struct {
+    /// Payload bytes.
     data: [*c]const u8 = null,
+    /// Byte length of `data`.
     length: usize = 0,
+    /// Payload type.
     type: DataTransferType = .none,
 
     pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
+    /// Write this transfer to the clipboard.
     pub const writeClipboard = RGFW_writeClipboard;
 };
 /// Debug info structure passed to debug callbacks.
 pub const DebugInfo = extern struct {
+    /// Message severity.
     type: DebugType,
+    /// Specific error / info code.
     code: ErrorCode,
+    /// Null-terminated message text.
     msg: [*:0]const u8,
     pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
@@ -1002,44 +1426,73 @@ pub const ConvertCallback = *const fn (dest: []u8, src: []u8, src_layout: *const
 pub const genericFunc = ?*const fn (e: *const Event) callconv(.c) void;
 /// (Internal) C-compatible callbacks struct for RGFW_setAllEventCallbacks.
 pub const Callbacks = extern struct {
+    /// Per-event-type C callbacks indexed by `EventType`.
     arr: [25]genericFunc = @import("std").mem.zeroes([25]genericFunc),
     pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
 /// OpenGL / EGL context creation hints (buffer sizes, profile, version, etc.).
 pub const GlHints = extern struct {
+    /// Stencil buffer bits.
     stencil: i32 = 0,
+    /// Multisample count.
     samples: i32 = 0,
+    /// Stereoscopic framebuffers for 3D.
     stereo: i32 = 0,
+    /// Number of auxiliary buffers.
     auxBuffers: i32 = 0,
+    /// Request double buffering.
     doubleBuffer: i32 = 0,
+    /// Red channel bits.
     red: i32 = 0,
+    /// Green channel bits.
     green: i32 = 0,
+    /// Blue channel bits.
     blue: i32 = 0,
+    /// Alpha channel bits.
     alpha: i32 = 0,
+    /// Depth buffer bits.
     depth: i32 = 0,
+    /// Accumulation buffer red bits.
     accumRed: i32 = 0,
+    /// Accumulation buffer green bits.
     accumGreen: i32 = 0,
+    /// Accumulation buffer blue bits.
     accumBlue: i32 = 0,
+    /// Accumulation buffer alpha bits.
     accumAlpha: i32 = 0,
+    /// Request an sRGB-capable framebuffer.
     sRGB: bool = false,
+    /// Request a robust memory-safe context.
     robustness: bool = false,
+    /// Request a debug context.
     debug: bool = false,
+    /// Request a no-error context (GL errors become undefined behavior).
     noError: bool = false,
+    /// Flush behavior on context release.
     releaseBehavior: GlReleaseBehavior = .flush,
+    /// API profile (core / compat / ES / Web).
     profile: GlProfile = .core,
+    /// Requested major API version.
     major: i32 = 0,
+    /// Requested minor API version.
     minor: i32 = 0,
+    /// Native OpenGL context to share resources with.
     share: ?*GlContext = null,
+    /// EGL context to share resources with.
     shareEGL: ?*EglContext = null,
+    /// Hardware GPU vs CPU software rendering.
     renderer: GlRenderer = .accelerated,
     pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
 
 /// OpenGL attribute stack for context creation.
 pub const AttribStack = extern struct {
+    /// Attribute key/value array.
     attribs: [*c]i32,
+    /// Number of attributes stored.
     count: usize,
+    /// Capacity of `attribs`.
     max: usize,
     pub const zero_init: @This() = std.mem.zeroInit(@This(), .{});
 };
