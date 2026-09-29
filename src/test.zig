@@ -221,7 +221,6 @@ test "module-level functions — alloc, free, init, deinit, etc." {
     _ = &rgfw.getDisplayX11;
     _ = &rgfw.getDisplayWayland;
     _ = &rgfw.moveToMacOSResourceDir;
-    _ = &rgfw.setRawMouseMode;
     _ = &rgfw.setBuildDnd;
     _ = &rgfw.waitForEvent;
     _ = &rgfw.pollEvents;
@@ -233,15 +232,9 @@ test "module-level functions — alloc, free, init, deinit, etc." {
     _ = &rgfw.setAllEventCallbacks;
     _ = &rgfw.createWindow;
     _ = &rgfw.createWindowPtr;
-    _ = &rgfw.getGlobalMouse;
-    _ = &rgfw.getMouseScroll;
-    _ = &rgfw.getMouseVector;
     _ = &rgfw.isKeyPressed;
     _ = &rgfw.isKeyReleased;
     _ = &rgfw.isKeyDown;
-    _ = &rgfw.isMousePressed;
-    _ = &rgfw.isMouseReleased;
-    _ = &rgfw.isMouseDown;
     _ = &rgfw.setRootWindow;
     _ = &rgfw.getRootWindow;
     _ = &rgfw.apiKeyToRgfw;
@@ -304,12 +297,6 @@ test "window.* functions" {
     _ = &rgfw.window.isKeyPressed;
     _ = &rgfw.window.isKeyDown;
     _ = &rgfw.window.isKeyReleased;
-    _ = &rgfw.window.isMousePressed;
-    _ = &rgfw.window.isMouseDown;
-    _ = &rgfw.window.isMouseReleased;
-    _ = &rgfw.window.didMouseLeave;
-    _ = &rgfw.window.didMouseEnter;
-    _ = &rgfw.window.isMouseInside;
     _ = &rgfw.window.isDataDragging;
     _ = &rgfw.window.getDataDrag;
     _ = &rgfw.window.didDataDrop;
@@ -340,10 +327,6 @@ test "window.* functions" {
     _ = &rgfw.window.setName;
     _ = &rgfw.window.setIcon;
     _ = &rgfw.window.setIconEx;
-    _ = &rgfw.window.showMouse;
-    _ = &rgfw.window.isMouseHidden;
-    _ = &rgfw.window.moveMouse;
-    _ = &rgfw.window.getMouse;
     _ = &rgfw.window.isFullscreen;
     _ = &rgfw.window.isHidden;
     _ = &rgfw.window.isMinimized;
@@ -353,9 +336,9 @@ test "window.* functions" {
     _ = &rgfw.window.getMonitor;
 }
 
-test "window.setMousePassthrough — guarded by !RGFW_NO_PASSTHROUGH" {
+test "mouse.setMousePassthrough — guarded by !RGFW_NO_PASSTHROUGH" {
     if (opts.rgfw_no_passthrough) return error.SkipZigTest;
-    _ = &rgfw.window.setMousePassthrough;
+    _ = &rgfw.mouse.setMousePassthrough;
 }
 
 test "monitor.* functions" {
@@ -410,10 +393,27 @@ test "mouse.* functions" {
     _ = &rgfw.mouse.setStandard;
     _ = &rgfw.mouse.setDefault;
     _ = &rgfw.mouse.setRawMode;
+    _ = &rgfw.mouse.setRawMouseMode;
     _ = &rgfw.mouse.capture;
     _ = &rgfw.mouse.captureRaw;
     _ = &rgfw.mouse.isRawMode;
     _ = &rgfw.mouse.isCaptured;
+    _ = &rgfw.mouse.getGlobalMouse;
+    _ = &rgfw.mouse.getMouseScroll;
+    _ = &rgfw.mouse.getMouseVector;
+    _ = &rgfw.mouse.isMousePressed;
+    _ = &rgfw.mouse.isMouseReleased;
+    _ = &rgfw.mouse.isMouseDown;
+    _ = &rgfw.mouse.isMousePressedWindow;
+    _ = &rgfw.mouse.isMouseDownWindow;
+    _ = &rgfw.mouse.isMouseReleasedWindow;
+    _ = &rgfw.mouse.didMouseLeave;
+    _ = &rgfw.mouse.didMouseEnter;
+    _ = &rgfw.mouse.isMouseInside;
+    _ = &rgfw.mouse.showMouse;
+    _ = &rgfw.mouse.isMouseHidden;
+    _ = &rgfw.mouse.moveMouse;
+    _ = &rgfw.mouse.getMouse;
 }
 
 test "clipboard.* functions" {

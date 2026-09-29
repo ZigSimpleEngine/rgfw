@@ -1317,12 +1317,6 @@ pub fn sizeofNativeImage() usize {
     return c.RGFW_sizeofNativeImage();
 }
 
-/// Enable or disable raw mouse mode globally.
-/// When enabled, unaccelerated mouse deltas are reported via `RGFW_mouseRawMotion` events.
-pub fn setRawMouseMode(state: bool) void {
-    c.RGFW_setRawMouseMode(boolToC(state));
-}
-
 /// Toggle building the drag-and-drop linked list of dropped items.
 /// If `true`, dropped data items are stored in a linked list for later retrieval.
 pub fn setBuildDnd(allow: bool) void {
@@ -1400,31 +1394,6 @@ pub fn createWindowPtr(name: [:0]const u8, pos: Position, size: Size, flags: Win
     return zigWindow(c.RGFW_createWindowPtr(name.ptr, pos.x, pos.y, size.w, size.h, @as(u32, @bitCast(flags)), cWindow(win)));
 }
 
-/// Retrieve the global mouse cursor position in screen coordinates.
-/// Returns null if the operation failed.
-pub fn getGlobalMouse() ?Position {
-    var x: i32 = 0;
-    var y: i32 = 0;
-    if (!boolFromC(c.RGFW_getGlobalMouse(&x, &y))) return null;
-    return .{ .x = x, .y = y };
-}
-
-/// Get the accumulated mouse scroll delta since the last frame.
-pub fn getMouseScroll() MouseVector {
-    var x: f32 = 0;
-    var y: f32 = 0;
-    c.RGFW_getMouseScroll(&x, &y);
-    return .{ .x = x, .y = y };
-}
-
-/// Get the raw mouse motion vector since the last frame.
-pub fn getMouseVector() MouseVector {
-    var x: f32 = 0;
-    var y: f32 = 0;
-    c.RGFW_getMouseVector(&x, &y);
-    return .{ .x = x, .y = y };
-}
-
 /// Returns true if the key was pressed this frame (transition from up to down).
 pub fn isKeyPressed(key_code: Key) bool {
     return boolFromC(c.RGFW_isKeyPressed(@intFromEnum(key_code)));
@@ -1438,21 +1407,6 @@ pub fn isKeyReleased(key_code: Key) bool {
 /// Returns true if the key is currently held down.
 pub fn isKeyDown(key_code: Key) bool {
     return boolFromC(c.RGFW_isKeyDown(@intFromEnum(key_code)));
-}
-
-/// Returns true if the mouse button was pressed this frame.
-pub fn isMousePressed(button: MouseButton) bool {
-    return boolFromC(c.RGFW_isMousePressed(@intFromEnum(button)));
-}
-
-/// Returns true if the mouse button was released this frame.
-pub fn isMouseReleased(button: MouseButton) bool {
-    return boolFromC(c.RGFW_isMouseReleased(@intFromEnum(button)));
-}
-
-/// Returns true if the mouse button is currently held down.
-pub fn isMouseDown(button: MouseButton) bool {
-    return boolFromC(c.RGFW_isMouseDown(@intFromEnum(button)));
 }
 
 /// Set the root (main) window for the current RGFW context.
@@ -1703,36 +1657,6 @@ pub const window = struct {
         return boolFromC(c.RGFW_window_isKeyReleased(cWindow(win), @intFromEnum(key_code)));
     }
 
-    /// Returns true if the mouse button was pressed this frame while the window is in focus.
-    pub fn isMousePressed(win: *Window, button: MouseButton) bool {
-        return boolFromC(c.RGFW_window_isMousePressed(cWindow(win), @intFromEnum(button)));
-    }
-
-    /// Returns true if the mouse button is held down while the window is in focus.
-    pub fn isMouseDown(win: *Window, button: MouseButton) bool {
-        return boolFromC(c.RGFW_window_isMouseDown(cWindow(win), @intFromEnum(button)));
-    }
-
-    /// Returns true if the mouse button was released this frame while the window is in focus.
-    pub fn isMouseReleased(win: *Window, button: MouseButton) bool {
-        return boolFromC(c.RGFW_window_isMouseReleased(cWindow(win), @intFromEnum(button)));
-    }
-
-    /// Returns true if the mouse left the window (only true for the first frame).
-    pub fn didMouseLeave(win: *Window) bool {
-        return boolFromC(c.RGFW_window_didMouseLeave(cWindow(win)));
-    }
-
-    /// Returns true if the mouse entered the window (only true for the first frame).
-    pub fn didMouseEnter(win: *Window) bool {
-        return boolFromC(c.RGFW_window_didMouseEnter(cWindow(win)));
-    }
-
-    /// Returns true if the mouse is currently inside the window bounds.
-    pub fn isMouseInside(win: *Window) bool {
-        return boolFromC(c.RGFW_window_isMouseInside(cWindow(win)));
-    }
-
     /// Returns true if data is currently being dragged into or within the window.
     pub fn isDataDragging(win: *Window) bool {
         return boolFromC(c.RGFW_window_isDataDragging(cWindow(win)));
@@ -1873,12 +1797,6 @@ pub const window = struct {
         return boolFromC(c.RGFW_window_allowsDND(cWindow(win)));
     }
 
-    /// Toggle mouse passthrough for the window (clicks pass through to windows behind).
-    /// Requires RGFW to be compiled without `RGFW_NO_PASSTHROUGH`.
-    pub fn setMousePassthrough(win: *Window, passthrough: bool) void {
-        c.RGFW_window_setMousePassthrough(cWindow(win), boolToC(passthrough));
-    }
-
     /// Set the window title.
     pub fn setName(win: *Window, name: [:0]const u8) void {
         c.RGFW_window_setName(cWindow(win), name.ptr);
@@ -1892,29 +1810,6 @@ pub const window = struct {
     /// Set the window and/or taskbar icon with explicit target selection.
     pub fn setIconEx(win: *Window, image_info: ImageInfo, icon_type: Icon) bool {
         return boolFromC(c.RGFW_window_setIconEx(cWindow(win), image_info.data.ptr, image_info.w, image_info.h, @intFromEnum(image_info.format), @intFromEnum(icon_type)));
-    }
-
-    /// Show or hide the mouse cursor over the window.
-    pub fn showMouse(win: *Window, visible: bool) void {
-        c.RGFW_window_showMouse(cWindow(win), boolToC(visible));
-    }
-
-    /// Check if the mouse cursor is hidden over the window.
-    pub fn isMouseHidden(win: *Window) bool {
-        return boolFromC(c.RGFW_window_isMouseHidden(cWindow(win)));
-    }
-
-    /// Move the mouse cursor to a position within the window.
-    pub fn moveMouse(win: *Window, pos: Position) void {
-        c.RGFW_window_moveMouse(cWindow(win), pos.x, pos.y);
-    }
-
-    /// Get the current mouse position relative to the window's client area.
-    pub fn getMouse(win: *Window) ?Position {
-        var x: i32 = 0;
-        var y: i32 = 0;
-        if (!boolFromC(c.RGFW_window_getMouse(cWindow(win), &x, &y))) return null;
-        return .{ .x = x, .y = y };
     }
 
     /// Check if the window is currently fullscreen.
@@ -2241,7 +2136,8 @@ pub const debug = struct {
     }
 };
 
-/// Mouse cursor creation and window cursor management.
+/// Mouse cursor creation, state query, and window cursor management.
+/// All mouse-related functions live exclusively in this namespace.
 pub const mouse = struct {
     /// Create a custom mouse cursor from image data.
     pub fn create(image_info: ImageInfo) ?*Mouse {
@@ -2278,6 +2174,12 @@ pub const mouse = struct {
         c.RGFW_window_setRawMouseMode(cWindow(win), boolToC(state));
     }
 
+    /// Enable or disable raw mouse mode globally.
+    /// When enabled, unaccelerated mouse deltas are reported via `RGFW_mouseRawMotion` events.
+    pub fn setRawMouseMode(state: bool) void {
+        c.RGFW_setRawMouseMode(boolToC(state));
+    }
+
     /// Capture or release the mouse cursor for a window (cursor is confined to the window).
     pub fn capture(win: *Window, state: bool) void {
         c.RGFW_window_captureMouse(cWindow(win), boolToC(state));
@@ -2296,6 +2198,114 @@ pub const mouse = struct {
     /// Check if the mouse is captured (confined to the window).
     pub fn isCaptured(win: *Window) bool {
         return boolFromC(c.RGFW_window_isCaptured(cWindow(win)));
+    }
+
+    /// Retrieve the global mouse cursor position in screen coordinates.
+    /// Returns null if the operation failed.
+    pub fn getGlobalMouse() ?Position {
+        var x: i32 = 0;
+        var y: i32 = 0;
+        if (!boolFromC(c.RGFW_getGlobalMouse(&x, &y))) return null;
+        return .{ .x = x, .y = y };
+    }
+
+    /// Get the accumulated mouse scroll delta since the last frame.
+    pub fn getMouseScroll() MouseVector {
+        var x: f32 = 0;
+        var y: f32 = 0;
+        c.RGFW_getMouseScroll(&x, &y);
+        return .{ .x = x, .y = y };
+    }
+
+    /// Get the raw mouse motion vector since the last frame.
+    /// Returns unaccelerated deltas reported via `mouseRawMotion` events.
+    /// Reset to zero every frame, so call once per frame after `pollEvents`.
+    ///
+    /// Only returns non-zero values while the mouse is captured with raw mode enabled, e.g.:
+    /// `mouse.captureRaw(win, true)` (capture + raw mode, recommended),
+    /// `mouse.capture(win, true)` + `mouse.setRawMode(win, true)`,
+    /// `mouse.setRawMouseMode(true)` (global raw mode),
+    /// or creation flags `.captureRawMouse` / `.{ .captureMouse = true, .rawMouse = true }`.
+    /// Use `mouse.isCaptured(win)` / `mouse.isRawMode(win)` to check.
+    pub fn getMouseVector() MouseVector {
+        var x: f32 = 0;
+        var y: f32 = 0;
+        c.RGFW_getMouseVector(&x, &y);
+        return .{ .x = x, .y = y };
+    }
+
+    /// Returns true if the mouse button was pressed this frame.
+    pub fn isMousePressed(button: MouseButton) bool {
+        return boolFromC(c.RGFW_isMousePressed(@intFromEnum(button)));
+    }
+
+    /// Returns true if the mouse button was released this frame.
+    pub fn isMouseReleased(button: MouseButton) bool {
+        return boolFromC(c.RGFW_isMouseReleased(@intFromEnum(button)));
+    }
+
+    /// Returns true if the mouse button is currently held down.
+    pub fn isMouseDown(button: MouseButton) bool {
+        return boolFromC(c.RGFW_isMouseDown(@intFromEnum(button)));
+    }
+
+    /// Returns true if the mouse button was pressed this frame while the window is in focus.
+    pub fn isMousePressedWindow(win: *Window, button: MouseButton) bool {
+        return boolFromC(c.RGFW_window_isMousePressed(cWindow(win), @intFromEnum(button)));
+    }
+
+    /// Returns true if the mouse button is held down while the window is in focus.
+    pub fn isMouseDownWindow(win: *Window, button: MouseButton) bool {
+        return boolFromC(c.RGFW_window_isMouseDown(cWindow(win), @intFromEnum(button)));
+    }
+
+    /// Returns true if the mouse button was released this frame while the window is in focus.
+    pub fn isMouseReleasedWindow(win: *Window, button: MouseButton) bool {
+        return boolFromC(c.RGFW_window_isMouseReleased(cWindow(win), @intFromEnum(button)));
+    }
+
+    /// Returns true if the mouse left the window (only true for the first frame).
+    pub fn didMouseLeave(win: *Window) bool {
+        return boolFromC(c.RGFW_window_didMouseLeave(cWindow(win)));
+    }
+
+    /// Returns true if the mouse entered the window (only true for the first frame).
+    pub fn didMouseEnter(win: *Window) bool {
+        return boolFromC(c.RGFW_window_didMouseEnter(cWindow(win)));
+    }
+
+    /// Returns true if the mouse is currently inside the window bounds.
+    pub fn isMouseInside(win: *Window) bool {
+        return boolFromC(c.RGFW_window_isMouseInside(cWindow(win)));
+    }
+
+    /// Toggle mouse passthrough for the window (clicks pass through to windows behind).
+    /// Requires RGFW to be compiled without `RGFW_NO_PASSTHROUGH`.
+    pub fn setMousePassthrough(win: *Window, passthrough: bool) void {
+        c.RGFW_window_setMousePassthrough(cWindow(win), boolToC(passthrough));
+    }
+
+    /// Show or hide the mouse cursor over the window.
+    pub fn showMouse(win: *Window, visible: bool) void {
+        c.RGFW_window_showMouse(cWindow(win), boolToC(visible));
+    }
+
+    /// Check if the mouse cursor is hidden over the window.
+    pub fn isMouseHidden(win: *Window) bool {
+        return boolFromC(c.RGFW_window_isMouseHidden(cWindow(win)));
+    }
+
+    /// Move the mouse cursor to a position within the window.
+    pub fn moveMouse(win: *Window, pos: Position) void {
+        c.RGFW_window_moveMouse(cWindow(win), pos.x, pos.y);
+    }
+
+    /// Get the current mouse position relative to the window's client area.
+    pub fn getMouse(win: *Window) ?Position {
+        var x: i32 = 0;
+        var y: i32 = 0;
+        if (!boolFromC(c.RGFW_window_getMouse(cWindow(win), &x, &y))) return null;
+        return .{ .x = x, .y = y };
     }
 };
 
