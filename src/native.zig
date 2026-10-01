@@ -11,6 +11,16 @@ pub const allocator = blk: {
     }
 };
 
+/// Deinitializes the backing `DebugAllocator` and reports leaks.
+/// Returns `null` when the current `allocator` has no leak checking
+/// (any non-`Debug` build), otherwise returns `std.heap.Check`
+/// (`.ok` when everything was freed, `.leak` otherwise).
+/// Call once at the very end of the program, after all frees.
+pub fn tryDeinitAllocator() ?std.heap.Check {
+    if (builtin.mode != .Debug) return null;
+    return debug_allocator.deinit();
+}
+
 pub fn createLogger(
     comptime buffer_size: usize,
     comptime level: std.log.Level,

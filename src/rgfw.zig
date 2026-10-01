@@ -14,6 +14,12 @@ const backend = switch (builtin.target.os.tag) {
 };
 
 pub const allocator: std.mem.Allocator = backend.allocator;
+/// Deinitializes the allocator backing `allocator` and reports leaks.
+/// Returns `null` when the current allocator has no leak checking
+/// (Release builds, emscripten), otherwise deinitializes it and
+/// returns `std.heap.Check` (`.ok` / `.leak`).
+/// Call once at the very end of the program, after all frees.
+pub const tryDeinitAllocator = backend.tryDeinitAllocator;
 pub const createLogger: fn (
     comptime buffer_size: usize,
     comptime level: std.log.Level,

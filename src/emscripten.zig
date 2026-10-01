@@ -95,6 +95,11 @@ var em_allocator = EmmallocAllocator{};
 pub const allocator =
     em_allocator.allocator();
 
+/// Emscripten backend has no leak checking, always returns `null`.
+pub fn tryDeinitAllocator() ?std.heap.Check {
+    return null;
+}
+
 extern fn emscripten_console_log([*:0]const u8) void;
 extern fn emscripten_console_warn([*:0]const u8) void;
 extern fn emscripten_console_error([*:0]const u8) void;
