@@ -10932,6 +10932,8 @@ RGFW_bool RGFW_createUTF8FromWideStringWin32(const WCHAR* source, char* out, siz
 #define WGL_CONTEXT_RELEASE_BEHAVIOR_FLUSH_ARB   0x2098
 #define WGL_CONTEXT_FLAGS_ARB            0x2094
 #define WGL_ACCESS_READ_WRITE_NV         0x00000001
+#define WGL_SAMPLE_BUFFERS_ARB           0x2041
+#define WGL_SAMPLES_ARB                  0x2042
 #define WGL_COVERAGE_SAMPLES_NV          0x2042
 #define WGL_CONTEXT_ES_PROFILE_BIT_EXT   0x00000004
 #define WGL_CONTEXT_PROFILE_MASK_ARB               0x9126
@@ -12783,6 +12785,45 @@ RGFW_bool RGFW_window_createContextPtr_OpenGL(RGFW_window* win, RGFW_glContext* 
 	win->src.ctx.native = ctx;
 	win->src.gfxType = RGFW_gfxNativeOpenGL;
 
+	/* WGL ARB procs (wglChoosePixelFormatARB, wglCreateContextAttribsARB,
+	 * wglSwapIntervalEXT) may still be NULL here: RGFW_loadGL() runs inside
+	 * RGFW_init() BEFORE RGFW_initPlatform() registers the Win32 window
+	 * class, so its dummy window fails and extension loading silently
+	 * fails. Without these, MSAA pixel formats, modern contexts and vsync
+	 * all fall back to legacy paths. Retry the dummy-window load now that
+	 * the window class exists (first window creation). */
+	if (RGFW_wglChoosePixelFormatARB == NULL || RGFW_wglCreateContextAttribsARB == NULL || RGFW_wglSwapIntervalEXT == NULL) {
+		HWND lazyDummyWin = CreateWindowW(_RGFW->wndClass.lpszClassName, (wchar_t*)NULL, 0, 0, 0, 0, 0, 0, 0, _RGFW->instance, 0);
+		if (lazyDummyWin) {
+			HDC lazy_dummy_dc = GetDC(lazyDummyWin);
+			if (lazy_dummy_dc) {
+				u32 lazy_pfd_flags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+				PIXELFORMATDESCRIPTOR lazy_pfd = {sizeof(lazy_pfd), 1, lazy_pfd_flags, PFD_TYPE_RGBA, 32, 8, PFD_MAIN_PLANE, 32, 8, 8, 8, 8, 8, 0, 0, 0, 0, 0, 32, 8, 0, PFD_MAIN_PLANE, 0, 0, 0, 0};
+				int lazy_pixel_format = ChoosePixelFormat(lazy_dummy_dc, &lazy_pfd);
+				if (lazy_pixel_format) SetPixelFormat(lazy_dummy_dc, lazy_pixel_format, &lazy_pfd);
+				if (RGFW_wglCreateContext != NULL) {
+					HGLRC lazy_ctx = RGFW_wglCreateContext(lazy_dummy_dc);
+					if (lazy_ctx) {
+						HGLRC lazy_prev_ctx = RGFW_wglGetCurrentContext ? RGFW_wglGetCurrentContext() : NULL;
+						HDC lazy_prev_dc = RGFW_wglGetCurrentDC ? RGFW_wglGetCurrentDC() : NULL;
+						if (RGFW_wglMakeCurrent) RGFW_wglMakeCurrent(lazy_dummy_dc, lazy_ctx);
+						if (RGFW_wglChoosePixelFormatARB == NULL)
+							RGFW_wglChoosePixelFormatARB = (RGFW_wglChoosePixelFormatARBProc)RGFW_getProcAddress_OpenGL("wglChoosePixelFormatARB");
+						if (RGFW_wglCreateContextAttribsARB == NULL)
+							RGFW_wglCreateContextAttribsARB = (RGFW_wglCreateContextAttribsARBProc)RGFW_getProcAddress_OpenGL("wglCreateContextAttribsARB");
+						if (RGFW_wglSwapIntervalEXT == NULL)
+							RGFW_wglSwapIntervalEXT = (RGFW_wglSwapIntervalEXTProc)RGFW_getProcAddress_OpenGL("wglSwapIntervalEXT");
+						RGFW_debugCallback(RGFW_typeInfo, RGFW_infoOpenGL, "WGL: lazy-loaded ARB procs on first window");
+						if (RGFW_wglMakeCurrent) RGFW_wglMakeCurrent(lazy_prev_dc, lazy_prev_ctx);
+						if (RGFW_wglDeleteContext) RGFW_wglDeleteContext(lazy_ctx);
+					}
+				}
+				ReleaseDC(lazyDummyWin, lazy_dummy_dc);
+			}
+			DestroyWindow(lazyDummyWin);
+		}
+	}
+
 	PIXELFORMATDESCRIPTOR pfd;
 	pfd.nSize        = sizeof(PIXELFORMATDESCRIPTOR);
 	pfd.nVersion     = 1;
@@ -12833,7 +12874,10 @@ RGFW_bool RGFW_window_createContextPtr_OpenGL(RGFW_window* win, RGFW_glContext* 
 				RGFW_attribStack_pushAttribs(&stack, WGL_COLORSPACE_SRGB_EXT, hints->sRGB);
 		}
 
-		RGFW_attribStack_pushAttribs(&stack, WGL_COVERAGE_SAMPLES_NV, hints->samples);
+		if (hints->samples) {
+			RGFW_attribStack_pushAttribs(&stack, WGL_SAMPLE_BUFFERS_ARB, 1);
+			RGFW_attribStack_pushAttribs(&stack, WGL_SAMPLES_ARB, hints->samples);
+		}
 
 		RGFW_attribStack_pushAttribs(&stack, 0, 0);
 
@@ -12842,7 +12886,10 @@ RGFW_bool RGFW_window_createContextPtr_OpenGL(RGFW_window* win, RGFW_glContext* 
 		RGFW_wglChoosePixelFormatARB(win->src.hdc, pixel_format_attribs, 0, 1, &new_pixel_format, &num_formats);
 		if (!num_formats)
 			RGFW_debugCallback(RGFW_typeError, RGFW_errOpenGLContext, "Failed to create a pixel format for WGL");
-		else pixel_format = new_pixel_format;
+		else
+			pixel_format = new_pixel_format;
+	} else {
+		RGFW_debugCallback(RGFW_typeError, RGFW_errOpenGLContext, "WGL: wglChoosePixelFormatARB is NULL, MSAA unavailable");
 	}
 
 	PIXELFORMATDESCRIPTOR suggested;
