@@ -10,8 +10,7 @@ pub fn main() !void {
     if (init_result < 0) @panic("RGFW init failed");
     defer rgfw.deinit();
 
-    const win = rgfw.createWindow("RGFW + WebGPU", .{ .x = 100, .y = 100 }, .{ .w = 800, .h = 600 }, .{})
-        orelse @panic("Failed to create window");
+    const win = rgfw.createWindow("RGFW + WebGPU", .{ .x = 100, .y = 100 }, .{ .w = 800, .h = 600 }, .{}) orelse @panic("Failed to create window");
     defer rgfw.window.close(win);
 
     const instance_desc = std.mem.zeroInit(wgpu.WGPUInstanceDescriptor, .{});

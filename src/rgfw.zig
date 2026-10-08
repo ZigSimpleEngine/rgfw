@@ -1522,7 +1522,7 @@ fn boolFromC(value: c.RGFW_bool) bool {
 }
 
 /// Internal storage for Zig event callbacks.
-threadlocal var current_zig_callbacks: [@intFromEnum(EventType.count)]?EventCallback = [_]?EventCallback{null} ** @intFromEnum(EventType.count);
+threadlocal var current_zig_callbacks: [@backingInt(EventType.count)]?EventCallback = @splat(null);
 /// Internal storage for Zig debug callback.
 threadlocal var current_debug_callback: ?DebugCallback = null;
 /// Internal storage for Zig convert callback (8-bit).
@@ -1533,7 +1533,7 @@ threadlocal var current_convert64_callback: ?ConvertCallback = null;
 /// Trampoline: C → Zig event callback.
 fn eventCallbackTrampoline(e: [*c]const c.RGFW_event) callconv(.c) void {
     const event: *const Event = @ptrCast(e);
-    const idx = @as(usize, @intFromEnum(event.type));
+    const idx = @as(usize, @backingInt(event.type));
     if (idx < current_zig_callbacks.len) {
         if (current_zig_callbacks[idx]) |cb| cb(event);
     }
@@ -1543,8 +1543,8 @@ fn eventCallbackTrampoline(e: [*c]const c.RGFW_event) callconv(.c) void {
 fn debugCallbackTrampoline(info: [*c]const c.RGFW_debugInfo) callconv(.c) void {
     if (current_debug_callback) |cb| {
         const zig_info = DebugInfo{
-            .type = @enumFromInt(info.*.type),
-            .code = @enumFromInt(info.*.code),
+            .type = @fromBackingInt(@intCast(info.*.type)),
+            .code = @fromBackingInt(@intCast(info.*.code)),
             .msg = @ptrCast(info.*.msg),
         };
         cb(&zig_info);
@@ -1755,14 +1755,14 @@ pub fn moveToMacOSResourceDir() void {
 /// If `func` is provided, it is used for the conversion; otherwise a default path is taken.
 pub fn copyImageData(dest: []u8, size: Size, dest_format: Format, src: []u8, src_format: Format, func: ?ConvertCallback) void {
     current_convert_callback = func;
-    c.RGFW_copyImageData(dest.ptr, size.w, size.h, @intFromEnum(dest_format), src.ptr, @intFromEnum(src_format), convertTrampoline);
+    c.RGFW_copyImageData(dest.ptr, size.w, size.h, @backingInt(dest_format), src.ptr, @backingInt(src_format), convertTrampoline);
 }
 
 /// 64-bit aware image data copy with format conversion.
 /// `is_64_bit` indicates whether the image data uses 64-bit pixels.
 pub fn copyImageData64(dest: []u8, size: Size, dest_format: Format, src: []u8, src_format: Format, is_64_bit: bool, func: ?ConvertCallback) void {
     current_convert64_callback = func;
-    RGFW_copyImageData64(dest.ptr, size.w, size.h, @intFromEnum(dest_format), src.ptr, @intFromEnum(src_format), boolToC(is_64_bit), convert64Trampoline);
+    RGFW_copyImageData64(dest.ptr, size.w, size.h, @backingInt(dest_format), src.ptr, @backingInt(src_format), boolToC(is_64_bit), convert64Trampoline);
 }
 
 /// Convert raw pixel data between color layouts (e.g. RGB ↔ BGR).
@@ -1809,25 +1809,25 @@ pub fn setQueueEvents(queue: bool) void {
 /// Returns the previously set callback for that type (or null).
 /// Use `getEventCallback` to query without replacing.
 pub fn setEventCallback(event_type: EventType, func: ?EventCallback) ?EventCallback {
-    const idx = @as(usize, @intFromEnum(event_type));
+    const idx = @as(usize, @backingInt(event_type));
     const prev = current_zig_callbacks[idx];
     current_zig_callbacks[idx] = func;
-    _ = c.RGFW_setEventCallback(@intFromEnum(event_type), eventCallbackTrampoline);
+    _ = c.RGFW_setEventCallback(@backingInt(event_type), eventCallbackTrampoline);
     return prev;
 }
 
 /// Set the same callback for two sequential event types starting at `event_type`.
 /// Use `getEventCallback` to retrieve previous callbacks if needed.
 pub fn setDualEventCallback(event_type: EventType, callback: ?EventCallback) void {
-    const idx = @as(usize, @intFromEnum(event_type));
+    const idx = @as(usize, @backingInt(event_type));
     current_zig_callbacks[idx] = callback;
     current_zig_callbacks[idx + 1] = callback;
-    c.RGFW_setDualEventCallback(@intFromEnum(event_type), eventCallbackTrampoline, null, null);
+    c.RGFW_setDualEventCallback(@backingInt(event_type), eventCallbackTrampoline, null, null);
 }
 
 /// Set a single callback for ALL event types. The previous callbacks are stored in `callback_set`.
 /// Use `getEventCallback` to query individual event type callbacks.
-pub fn setAllEventCallbacks(func: ?EventCallback, callback_set: *[@intFromEnum(EventType.count)]?EventCallback) void {
+pub fn setAllEventCallbacks(func: ?EventCallback, callback_set: *[@backingInt(EventType.count)]?EventCallback) void {
     for (callback_set, 0..) |*prev, i| {
         if (i == 0) continue;
         prev.* = current_zig_callbacks[i];
@@ -1838,7 +1838,7 @@ pub fn setAllEventCallbacks(func: ?EventCallback, callback_set: *[@intFromEnum(E
 
 /// Return the currently registered Zig callback for the given event type.
 pub fn getEventCallback(event_type: EventType) ?EventCallback {
-    return current_zig_callbacks[@as(usize, @intFromEnum(event_type))];
+    return current_zig_callbacks[@as(usize, @backingInt(event_type))];
 }
 
 /// Create a new window with the given title, position, size, and flags.
@@ -1855,17 +1855,17 @@ pub fn createWindowPtr(name: [:0]const u8, pos: Position, size: Size, flags: Win
 
 /// Returns true if the key was pressed this frame (transition from up to down).
 pub fn isKeyPressed(key_code: Key) bool {
-    return boolFromC(c.RGFW_isKeyPressed(@intFromEnum(key_code)));
+    return boolFromC(c.RGFW_isKeyPressed(@backingInt(key_code)));
 }
 
 /// Returns true if the key was released this frame (transition from down to up).
 pub fn isKeyReleased(key_code: Key) bool {
-    return boolFromC(c.RGFW_isKeyReleased(@intFromEnum(key_code)));
+    return boolFromC(c.RGFW_isKeyReleased(@backingInt(key_code)));
 }
 
 /// Returns true if the key is currently held down.
 pub fn isKeyDown(key_code: Key) bool {
-    return boolFromC(c.RGFW_isKeyDown(@intFromEnum(key_code)));
+    return boolFromC(c.RGFW_isKeyDown(@backingInt(key_code)));
 }
 
 /// Set the root (main) window for the current RGFW context.
@@ -1880,18 +1880,18 @@ pub fn getRootWindow() ?*Window {
 
 /// Convert a platform-specific keycode to an RGFW abstract key code.
 pub fn apiKeyToRgfw(keycode: u32) Key {
-    return @enumFromInt(c.RGFW_apiKeyToRGFW(keycode));
+    return @fromBackingInt(@intCast(c.RGFW_apiKeyToRGFW(keycode)));
 }
 
 /// Convert an RGFW abstract key code to a platform-specific keycode.
 pub fn rgfwToApiKey(keycode: Key) u32 {
-    return @intCast(c.RGFW_rgfwToApiKey(@intFromEnum(keycode)));
+    return @intCast(c.RGFW_rgfwToApiKey(@backingInt(keycode)));
 }
 
 /// Convert a physical RGFW key code to a mapped (character) RGFW key code,
 /// taking keyboard layout into account.
 pub fn physicalToMappedKey(keycode: Key) Key {
-    return @enumFromInt(c.RGFW_physicalToMappedKey(@intFromEnum(keycode)));
+    return @fromBackingInt(@intCast(c.RGFW_physicalToMappedKey(@backingInt(keycode))));
 }
 
 /// Check if a string contains any non-ASCII characters (>= 0x80).
@@ -1922,12 +1922,12 @@ pub fn extensionSupportedBase(extension: []const u8, get_proc_address: ProcLoade
 pub const window = struct {
     /// Create a software surface for the given window from raw pixel data.
     pub fn createSurface(win: *Window, image_info: ImageInfo) ?*Surface {
-        return zigSurface(c.RGFW_window_createSurface(cWindow(win), image_info.data.ptr, image_info.w, image_info.h, @intFromEnum(image_info.format)));
+        return zigSurface(c.RGFW_window_createSurface(cWindow(win), image_info.data.ptr, image_info.w, image_info.h, @backingInt(image_info.format)));
     }
 
     /// Create a software surface using a pre-allocated `Surface` structure.
     pub fn createSurfacePtr(win: *Window, image_info: ImageInfo, surface_ptr: *Surface) bool {
-        return boolFromC(c.RGFW_window_createSurfacePtr(cWindow(win), image_info.data.ptr, image_info.w, image_info.h, @intFromEnum(image_info.format), cSurface(surface_ptr)));
+        return boolFromC(c.RGFW_window_createSurfacePtr(cWindow(win), image_info.data.ptr, image_info.w, image_info.h, @backingInt(image_info.format), cSurface(surface_ptr)));
     }
 
     /// Close the window and free its associated structure.
@@ -1965,12 +1965,12 @@ pub const window = struct {
 
     /// Get the exit key assigned to the window (e.g. ESC).
     pub fn getExitKey(win: *Window) Key {
-        return @enumFromInt(c.RGFW_window_getExitKey(cWindow(win)));
+        return @fromBackingInt(@intCast(c.RGFW_window_getExitKey(cWindow(win))));
     }
 
     /// Set the exit key for the window. When this key is pressed, `shouldClose` returns true.
     pub fn setExitKey(win: *Window, key_code: Key) void {
-        c.RGFW_window_setExitKey(cWindow(win), @intFromEnum(key_code));
+        c.RGFW_window_setExitKey(cWindow(win), @backingInt(key_code));
     }
 
     /// Get the window position in screen coordinates.
@@ -2103,17 +2103,17 @@ pub const window = struct {
 
     /// Returns true if the key was pressed this frame while the window is in focus.
     pub fn isKeyPressed(win: *Window, key_code: Key) bool {
-        return boolFromC(c.RGFW_window_isKeyPressed(cWindow(win), @intFromEnum(key_code)));
+        return boolFromC(c.RGFW_window_isKeyPressed(cWindow(win), @backingInt(key_code)));
     }
 
     /// Returns true if the key is being held down while the window is in focus.
     pub fn isKeyDown(win: *Window, key_code: Key) bool {
-        return boolFromC(c.RGFW_window_isKeyDown(cWindow(win), @intFromEnum(key_code)));
+        return boolFromC(c.RGFW_window_isKeyDown(cWindow(win), @backingInt(key_code)));
     }
 
     /// Returns true if the key was released this frame while the window is in focus.
     pub fn isKeyReleased(win: *Window, key_code: Key) bool {
-        return boolFromC(c.RGFW_window_isKeyReleased(cWindow(win), @intFromEnum(key_code)));
+        return boolFromC(c.RGFW_window_isKeyReleased(cWindow(win), @backingInt(key_code)));
     }
 
     /// Returns true if data is currently being dragged into or within the window.
@@ -2217,7 +2217,7 @@ pub const window = struct {
 
     /// Request a window flash to grab the user's attention.
     pub fn flash(win: *Window, request: FlashRequest) void {
-        c.RGFW_window_flash(cWindow(win), @intFromEnum(request));
+        c.RGFW_window_flash(cWindow(win), @backingInt(request));
     }
 
     /// Toggle fullscreen mode for the window.
@@ -2263,12 +2263,12 @@ pub const window = struct {
 
     /// Set the window icon and taskbar icon from image data.
     pub fn setIcon(win: *Window, image_info: ImageInfo) bool {
-        return boolFromC(c.RGFW_window_setIcon(cWindow(win), image_info.data.ptr, image_info.w, image_info.h, @intFromEnum(image_info.format)));
+        return boolFromC(c.RGFW_window_setIcon(cWindow(win), image_info.data.ptr, image_info.w, image_info.h, @backingInt(image_info.format)));
     }
 
     /// Set the window and/or taskbar icon with explicit target selection.
     pub fn setIconEx(win: *Window, image_info: ImageInfo, icon_type: Icon) bool {
-        return boolFromC(c.RGFW_window_setIconEx(cWindow(win), image_info.data.ptr, image_info.w, image_info.h, @intFromEnum(image_info.format), @intFromEnum(icon_type)));
+        return boolFromC(c.RGFW_window_setIconEx(cWindow(win), image_info.data.ptr, image_info.w, image_info.h, @backingInt(image_info.format), @backingInt(icon_type)));
     }
 
     /// Check if the window is currently fullscreen.
@@ -2459,7 +2459,7 @@ pub const monitor = struct {
 
     /// Request a specific display mode for a monitor (selects closest match).
     pub fn requestMode(mon: *Monitor, mode: *MonitorMode, request: ModeRequest) bool {
-        return boolFromC(c.RGFW_monitor_requestMode(cMonitor(mon), ptrCast(*c.RGFW_monitorMode, mode), @intFromEnum(request)));
+        return boolFromC(c.RGFW_monitor_requestMode(cMonitor(mon), ptrCast(*c.RGFW_monitorMode, mode), @backingInt(request)));
     }
 
     /// Directly set a specific display mode for a monitor.
@@ -2469,7 +2469,7 @@ pub const monitor = struct {
 
     /// Compare two monitor modes for equivalence under the given `request` flags.
     pub fn modeCompare(a: *MonitorMode, b: *MonitorMode, request: ModeRequest) bool {
-        return boolFromC(c.RGFW_monitorModeCompare(ptrCast(*c.RGFW_monitorMode, a), ptrCast(*c.RGFW_monitorMode, b), @intFromEnum(request)));
+        return boolFromC(c.RGFW_monitorModeCompare(ptrCast(*c.RGFW_monitorMode, a), ptrCast(*c.RGFW_monitorMode, b), @backingInt(request)));
     }
 
     /// Scale a monitor's mode to match a window's size.
@@ -2482,12 +2482,12 @@ pub const monitor = struct {
 pub const surface = struct {
     /// Create a new software surface from raw pixel data.
     pub fn create(image_info: ImageInfo) ?*Surface {
-        return zigSurface(c.RGFW_createSurface(image_info.data.ptr, image_info.w, image_info.h, @intFromEnum(image_info.format)));
+        return zigSurface(c.RGFW_createSurface(image_info.data.ptr, image_info.w, image_info.h, @backingInt(image_info.format)));
     }
 
     /// Create a software surface using a pre-allocated `Surface` structure.
     pub fn createPtr(image_info: ImageInfo, surface_ptr: *Surface) bool {
-        return boolFromC(c.RGFW_createSurfacePtr(image_info.data.ptr, image_info.w, image_info.h, @intFromEnum(image_info.format), cSurface(surface_ptr)));
+        return boolFromC(c.RGFW_createSurfacePtr(image_info.data.ptr, image_info.w, image_info.h, @backingInt(image_info.format), cSurface(surface_ptr)));
     }
 
     /// Get the native image associated with a surface.
@@ -2532,7 +2532,7 @@ pub const surface = struct {
 
     /// Returns the native pixel format for the current platform.
     pub fn nativeFormat() Format {
-        return @enumFromInt(c.RGFW_nativeFormat());
+        return @fromBackingInt(@intCast(c.RGFW_nativeFormat()));
     }
 
     /// Blit a surface to a window for display.
@@ -2591,7 +2591,7 @@ pub const debug = struct {
 
     /// Manually send a debug message through the currently set callback.
     pub fn callback(debug_type: DebugType, code: ErrorCode, msg: [:0]const u8) void {
-        c.RGFW_debugCallback(@intFromEnum(debug_type), @intFromEnum(code), msg.ptr);
+        c.RGFW_debugCallback(@backingInt(debug_type), @backingInt(code), msg.ptr);
     }
 };
 
@@ -2600,12 +2600,12 @@ pub const debug = struct {
 pub const mouse = struct {
     /// Create a custom mouse cursor from image data.
     pub fn create(image_info: ImageInfo) ?*Mouse {
-        return zigMouse(c.RGFW_createMouse(image_info.data.ptr, image_info.w, image_info.h, @intFromEnum(image_info.format)));
+        return zigMouse(c.RGFW_createMouse(image_info.data.ptr, image_info.w, image_info.h, @backingInt(image_info.format)));
     }
 
     /// Create a standard system cursor by its icon identifier.
     pub fn createStandard(icon_id: MouseIcon) ?*Mouse {
-        return zigMouse(c.RGFW_createMouseStandard(@intFromEnum(icon_id)));
+        return zigMouse(c.RGFW_createMouseStandard(@backingInt(icon_id)));
     }
 
     /// Free a mouse cursor created with `create` or `createStandard`.
@@ -2620,7 +2620,7 @@ pub const mouse = struct {
 
     /// Set a standard system cursor for a window.
     pub fn setStandard(win: *Window, icon_id: MouseIcon) bool {
-        return boolFromC(c.RGFW_window_setMouseStandard(cWindow(win), @intFromEnum(icon_id)));
+        return boolFromC(c.RGFW_window_setMouseStandard(cWindow(win), @backingInt(icon_id)));
     }
 
     /// Reset the window's cursor to the default system cursor.
@@ -2695,32 +2695,32 @@ pub const mouse = struct {
 
     /// Returns true if the mouse button was pressed this frame.
     pub fn isMousePressed(button: MouseButton) bool {
-        return boolFromC(c.RGFW_isMousePressed(@intFromEnum(button)));
+        return boolFromC(c.RGFW_isMousePressed(@backingInt(button)));
     }
 
     /// Returns true if the mouse button was released this frame.
     pub fn isMouseReleased(button: MouseButton) bool {
-        return boolFromC(c.RGFW_isMouseReleased(@intFromEnum(button)));
+        return boolFromC(c.RGFW_isMouseReleased(@backingInt(button)));
     }
 
     /// Returns true if the mouse button is currently held down.
     pub fn isMouseDown(button: MouseButton) bool {
-        return boolFromC(c.RGFW_isMouseDown(@intFromEnum(button)));
+        return boolFromC(c.RGFW_isMouseDown(@backingInt(button)));
     }
 
     /// Returns true if the mouse button was pressed this frame while the window is in focus.
     pub fn isMousePressedWindow(win: *Window, button: MouseButton) bool {
-        return boolFromC(c.RGFW_window_isMousePressed(cWindow(win), @intFromEnum(button)));
+        return boolFromC(c.RGFW_window_isMousePressed(cWindow(win), @backingInt(button)));
     }
 
     /// Returns true if the mouse button is held down while the window is in focus.
     pub fn isMouseDownWindow(win: *Window, button: MouseButton) bool {
-        return boolFromC(c.RGFW_window_isMouseDown(cWindow(win), @intFromEnum(button)));
+        return boolFromC(c.RGFW_window_isMouseDown(cWindow(win), @backingInt(button)));
     }
 
     /// Returns true if the mouse button was released this frame while the window is in focus.
     pub fn isMouseReleasedWindow(win: *Window, button: MouseButton) bool {
-        return boolFromC(c.RGFW_window_isMouseReleased(cWindow(win), @intFromEnum(button)));
+        return boolFromC(c.RGFW_window_isMouseReleased(cWindow(win), @backingInt(button)));
     }
 
     /// Returns true if the mouse left the window (only true for the first frame).
@@ -3551,12 +3551,12 @@ pub const callbacks = struct {
 
     /// Called when data is dropped onto the window.
     pub fn dataDrop(win: *Window, data: [:0]const u8, data_type: DataTransferType) void {
-        RGFW_dataDropCallback(cWindow(win), @constCast(data.ptr), @intCast(data.len), @intFromEnum(data_type));
+        RGFW_dataDropCallback(cWindow(win), @constCast(data.ptr), @intCast(data.len), @backingInt(data_type));
     }
 
     /// Called during a drag-and-drop operation over the window.
     pub fn dataDrag(win: *Window, data_type: DataTransferType, action: DndActionType, pos: Position) void {
-        RGFW_dataDragCallback(cWindow(win), @intFromEnum(data_type), @intFromEnum(action), pos.x, pos.y);
+        RGFW_dataDragCallback(cWindow(win), @backingInt(data_type), @backingInt(action), pos.x, pos.y);
     }
 
     /// Called when a UTF-8 character is typed.
@@ -3566,12 +3566,12 @@ pub const callbacks = struct {
 
     /// Called when a key is pressed or released.
     pub fn keyEvent(win: *Window, key_code: Key, mod: KeyMod, repeat: bool, press: bool) void {
-        RGFW_keyCallback(cWindow(win), @intFromEnum(key_code), @as(u8, @bitCast(mod)), boolToC(repeat), boolToC(press));
+        RGFW_keyCallback(cWindow(win), @backingInt(key_code), @as(u8, @bitCast(mod)), boolToC(repeat), boolToC(press));
     }
 
     /// Called when a mouse button is pressed or released.
     pub fn mouseButton(win: *Window, button: MouseButton, press: bool) void {
-        RGFW_mouseButtonCallback(cWindow(win), @intFromEnum(button), boolToC(press));
+        RGFW_mouseButtonCallback(cWindow(win), @backingInt(button), boolToC(press));
     }
 
     /// Called when the mouse scroll wheel is used.
@@ -3672,7 +3672,7 @@ pub const native = struct {
             warn("Attempt to use function rgfw.native.xImageGetFormat without setting option rgfw_x11", .{});
             return .rgb8;
         }
-        return @enumFromInt(RGFW_XImage_getFormat(@ptrCast(image)));
+        return @fromBackingInt(@intCast(RGFW_XImage_getFormat(@ptrCast(image))));
     }
 
     /// Custom X11 error handler (X11 only).

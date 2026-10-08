@@ -4,7 +4,7 @@ const builtin = @import("builtin");
 var debug_allocator = std.heap.DebugAllocator(.{}){};
 
 pub const allocator = blk: {
-    if (builtin.mode == .Debug) {
+    if (builtin.mode == .debug) {
         break :blk debug_allocator.allocator();
     } else {
         break :blk std.heap.smp_allocator;
@@ -17,7 +17,7 @@ pub const allocator = blk: {
 /// (`.ok` when everything was freed, `.leak` otherwise).
 /// Call once at the very end of the program, after all frees.
 pub fn tryDeinitAllocator() ?std.heap.Check {
-    if (builtin.mode != .Debug) return null;
+    if (builtin.mode != .debug) return null;
     return debug_allocator.deinit();
 }
 

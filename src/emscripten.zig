@@ -232,13 +232,13 @@ fn timestampSeconds() f64 {
 
 pub fn panic(
     msg: []const u8,
-    error_return_trace: ?*std.builtin.StackTrace,
+    error_return_trace: ?*std.lang.StackTrace,
     ret_addr: ?usize,
 ) noreturn {
     _ = error_return_trace;
     _ = ret_addr;
 
-    var out: [32 * 1024]u8 = [_]u8{0} ** (32 * 1024);
+    var out: [32 * 1024]u8 = @splat(0);
 
     var writer: std.Io.Writer = .fixed(&out);
 

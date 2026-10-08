@@ -28,25 +28,27 @@ test "error type" {
 
 test "Key enum — last field is 255, all named variants present" {
     const key = rgfw.Key;
-    try std.testing.expectEqual(0, @intFromEnum(key.none));
-    try std.testing.expectEqual(255, @intFromEnum(key.last));
-    try std.testing.expectEqual(27, @intFromEnum(key.escape));
-    try std.testing.expectEqual('a', @intFromEnum(key.a));
-    try std.testing.expectEqual('z', @intFromEnum(key.z));
-    try std.testing.expectEqual('0', @intFromEnum(key._0));
-    try std.testing.expectEqual('9', @intFromEnum(key._9));
-    try std.testing.expectEqual(130, @intFromEnum(key.f3));
-    try std.testing.expectEqual(151, @intFromEnum(key.f24));
+    try std.testing.expectEqual(0, @backingInt(key.none));
+    try std.testing.expectEqual(255, @backingInt(key.last));
+    try std.testing.expectEqual(27, @backingInt(key.escape));
+    try std.testing.expectEqual('a', @backingInt(key.a));
+    try std.testing.expectEqual('z', @backingInt(key.z));
+    try std.testing.expectEqual('0', @backingInt(key._0));
+    try std.testing.expectEqual('9', @backingInt(key._9));
+    try std.testing.expectEqual(130, @backingInt(key.f3));
+    try std.testing.expectEqual(151, @backingInt(key.f24));
     const eq = comptime key.equals;
     const ret = comptime key.return_key;
     const peq = comptime key.pad_equals;
-    _ = eq; _ = ret; _ = peq;
+    _ = eq;
+    _ = ret;
+    _ = peq;
 }
 
 test "MouseButton enum" {
-    try std.testing.expectEqual(0, @intFromEnum(rgfw.MouseButton.left));
-    try std.testing.expectEqual(1, @intFromEnum(rgfw.MouseButton.middle));
-    try std.testing.expectEqual(2, @intFromEnum(rgfw.MouseButton.right));
+    try std.testing.expectEqual(0, @backingInt(rgfw.MouseButton.left));
+    try std.testing.expectEqual(1, @backingInt(rgfw.MouseButton.middle));
+    try std.testing.expectEqual(2, @backingInt(rgfw.MouseButton.right));
     _ = rgfw.MouseButton.final;
 }
 
@@ -65,26 +67,26 @@ test "InitFlags packed struct" {
 }
 
 test "Format enum" {
-    try std.testing.expectEqual(0, @intFromEnum(rgfw.Format.rgb8));
-    try std.testing.expectEqual(5, @intFromEnum(rgfw.Format.abgr8));
+    try std.testing.expectEqual(0, @backingInt(rgfw.Format.rgb8));
+    try std.testing.expectEqual(5, @backingInt(rgfw.Format.abgr8));
     _ = rgfw.Format.count;
 }
 
 test "common enums — ModeRequest, DndActionType, DataTransferType" {
-    try std.testing.expectEqual(1, @intFromEnum(rgfw.ModeRequest.scale));
-    try std.testing.expectEqual(0, @intFromEnum(rgfw.DndActionType.none));
-    try std.testing.expectEqual(1, @intFromEnum(rgfw.DndActionType.enter));
-    try std.testing.expectEqual(0, @intFromEnum(rgfw.DataTransferType.none));
-    try std.testing.expectEqual(1, @intFromEnum(rgfw.DataTransferType.text));
+    try std.testing.expectEqual(1, @backingInt(rgfw.ModeRequest.scale));
+    try std.testing.expectEqual(0, @backingInt(rgfw.DndActionType.none));
+    try std.testing.expectEqual(1, @backingInt(rgfw.DndActionType.enter));
+    try std.testing.expectEqual(0, @backingInt(rgfw.DataTransferType.none));
+    try std.testing.expectEqual(1, @backingInt(rgfw.DataTransferType.text));
 }
 
 test "EventType — every variant present" {
-    try std.testing.expectEqual(0, @intFromEnum(rgfw.EventType.none));
-    try std.testing.expectEqual(1, @intFromEnum(rgfw.EventType.keyPressed));
-    try std.testing.expectEqual(4, @intFromEnum(rgfw.EventType.mouseButtonPressed));
-    try std.testing.expectEqual(11, @intFromEnum(rgfw.EventType.windowMoved));
-    try std.testing.expectEqual(20, @intFromEnum(rgfw.EventType.dataDrop));
-    try std.testing.expectEqual(24, @intFromEnum(rgfw.EventType.monitorDisconnected));
+    try std.testing.expectEqual(0, @backingInt(rgfw.EventType.none));
+    try std.testing.expectEqual(1, @backingInt(rgfw.EventType.keyPressed));
+    try std.testing.expectEqual(4, @backingInt(rgfw.EventType.mouseButtonPressed));
+    try std.testing.expectEqual(11, @backingInt(rgfw.EventType.windowMoved));
+    try std.testing.expectEqual(20, @backingInt(rgfw.EventType.dataDrop));
+    try std.testing.expectEqual(24, @backingInt(rgfw.EventType.monitorDisconnected));
     _ = rgfw.EventType.count;
 }
 
@@ -110,42 +112,42 @@ test "WindowFlags packed struct" {
 }
 
 test "Icon enum" {
-    try std.testing.expectEqual(1, @intFromEnum(rgfw.Icon.taskbar));
-    try std.testing.expectEqual(2, @intFromEnum(rgfw.Icon.window));
-    try std.testing.expectEqual(3, @intFromEnum(rgfw.Icon.both));
+    try std.testing.expectEqual(1, @backingInt(rgfw.Icon.taskbar));
+    try std.testing.expectEqual(2, @backingInt(rgfw.Icon.window));
+    try std.testing.expectEqual(3, @backingInt(rgfw.Icon.both));
 }
 
 test "MouseIcon enum" {
-    try std.testing.expectEqual(0, @intFromEnum(rgfw.MouseIcon.normal));
-    try std.testing.expectEqual(2, @intFromEnum(rgfw.MouseIcon.ibeam));
-    try std.testing.expectEqual(3, @intFromEnum(rgfw.MouseIcon.crosshair));
-    try std.testing.expectEqual(20, @intFromEnum(rgfw.MouseIcon.progress));
+    try std.testing.expectEqual(0, @backingInt(rgfw.MouseIcon.normal));
+    try std.testing.expectEqual(2, @backingInt(rgfw.MouseIcon.ibeam));
+    try std.testing.expectEqual(3, @backingInt(rgfw.MouseIcon.crosshair));
+    try std.testing.expectEqual(20, @backingInt(rgfw.MouseIcon.progress));
     _ = rgfw.MouseIcon.final;
     _ = rgfw.MouseIcon.count;
     _ = rgfw.MouseIcon.text;
 }
 
 test "FlashRequest enum" {
-    try std.testing.expectEqual(0, @intFromEnum(rgfw.FlashRequest.cancel));
-    try std.testing.expectEqual(1, @intFromEnum(rgfw.FlashRequest.briefly));
+    try std.testing.expectEqual(0, @backingInt(rgfw.FlashRequest.cancel));
+    try std.testing.expectEqual(1, @backingInt(rgfw.FlashRequest.briefly));
 }
 
 test "DebugType enum" {
-    try std.testing.expectEqual(0, @intFromEnum(rgfw.DebugType.err));
-    try std.testing.expectEqual(2, @intFromEnum(rgfw.DebugType.info));
+    try std.testing.expectEqual(0, @backingInt(rgfw.DebugType.err));
+    try std.testing.expectEqual(2, @backingInt(rgfw.DebugType.info));
 }
 
 test "ErrorCode enum" {
-    try std.testing.expectEqual(0, @intFromEnum(rgfw.ErrorCode.none));
-    try std.testing.expectEqual(1, @intFromEnum(rgfw.ErrorCode.outOfMemory));
-    try std.testing.expectEqual(15, @intFromEnum(rgfw.ErrorCode.infoWindow));
-    try std.testing.expectEqual(19, @intFromEnum(rgfw.ErrorCode.warningWayland));
-    try std.testing.expectEqual(20, @intFromEnum(rgfw.ErrorCode.warningOpenGl));
+    try std.testing.expectEqual(0, @backingInt(rgfw.ErrorCode.none));
+    try std.testing.expectEqual(1, @backingInt(rgfw.ErrorCode.outOfMemory));
+    try std.testing.expectEqual(15, @backingInt(rgfw.ErrorCode.infoWindow));
+    try std.testing.expectEqual(19, @backingInt(rgfw.ErrorCode.warningWayland));
+    try std.testing.expectEqual(20, @backingInt(rgfw.ErrorCode.warningOpenGl));
 }
 
 test "EventWait enum" {
-    try std.testing.expectEqual(0, @intFromEnum(rgfw.EventWait.eventNoWait));
-    try std.testing.expectEqual(-1, @intFromEnum(rgfw.EventWait.eventWaitNext));
+    try std.testing.expectEqual(0, @backingInt(rgfw.EventWait.eventNoWait));
+    try std.testing.expectEqual(-1, @backingInt(rgfw.EventWait.eventWaitNext));
 }
 
 test "ColorLayout extern struct — field layout" {
@@ -450,21 +452,21 @@ test "GlHints — guarded by RGFW_OPENGL or RGFW_EGL" {
 
 test "GlReleaseBehavior enum — guarded by RGFW_OPENGL or RGFW_EGL" {
     if (!opts.rgfw_opengl and !opts.rgfw_egl) return error.SkipZigTest;
-    try std.testing.expectEqual(0, @intFromEnum(rgfw.GlReleaseBehavior.flush));
-    try std.testing.expectEqual(1, @intFromEnum(rgfw.GlReleaseBehavior.none));
+    try std.testing.expectEqual(0, @backingInt(rgfw.GlReleaseBehavior.flush));
+    try std.testing.expectEqual(1, @backingInt(rgfw.GlReleaseBehavior.none));
 }
 
 test "GlProfile enum — guarded by RGFW_OPENGL or RGFW_EGL" {
     if (!opts.rgfw_opengl and !opts.rgfw_egl) return error.SkipZigTest;
-    try std.testing.expectEqual(0, @intFromEnum(rgfw.GlProfile.core));
-    try std.testing.expectEqual(1, @intFromEnum(rgfw.GlProfile.forwardCompatibility));
-    try std.testing.expectEqual(4, @intFromEnum(rgfw.GlProfile.web));
+    try std.testing.expectEqual(0, @backingInt(rgfw.GlProfile.core));
+    try std.testing.expectEqual(1, @backingInt(rgfw.GlProfile.forwardCompatibility));
+    try std.testing.expectEqual(4, @backingInt(rgfw.GlProfile.web));
 }
 
 test "GlRenderer enum — guarded by RGFW_OPENGL or RGFW_EGL" {
     if (!opts.rgfw_opengl and !opts.rgfw_egl) return error.SkipZigTest;
-    try std.testing.expectEqual(0, @intFromEnum(rgfw.GlRenderer.accelerated));
-    try std.testing.expectEqual(1, @intFromEnum(rgfw.GlRenderer.software));
+    try std.testing.expectEqual(0, @backingInt(rgfw.GlRenderer.accelerated));
+    try std.testing.expectEqual(1, @backingInt(rgfw.GlRenderer.software));
 }
 
 test "AttribStack extern struct — guarded by RGFW_OPENGL or RGFW_EGL" {

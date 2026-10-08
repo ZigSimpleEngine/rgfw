@@ -2,12 +2,9 @@ const std = @import("std");
 
 const ThisBuild = @This();
 
-fn getEnv(allocator: std.mem.Allocator, name: []const u8) ?[]u8 {
-    const environ = std.process.Environ{ .block = .{ .use_global = true } };
-    var map = std.process.Environ.createMap(environ, allocator) catch return null;
-    defer map.deinit();
-    const value = map.get(name) orelse return null;
-    return allocator.dupe(u8, value) catch return null;
+fn getEnv(b: *std.Build, name: []const u8) ?[]u8 {
+    const value = b.graph.environ_map.get(name) orelse return null;
+    return b.allocator.dupe(u8, value) catch return null;
 }
 
 /// Case-insensitively find a subdirectory `name` inside `dir`.
@@ -26,7 +23,7 @@ pub const Options = struct {
     /// The target architecture for which the module will be built.
     target: ?std.Build.ResolvedTarget = null,
     /// The optimization mode used to compile the module.
-    optimize: ?std.builtin.OptimizeMode = null,
+    optimize: ?std.lang.Optimize = null,
     /// Force compilation with OpenGL context creation and support
     rgfw_opengl: bool = false,
     /// Compiles with EGL context creation support, allowing you to use EGL instead of native OpenGL context functions (WGL/GLX/NSGL)
@@ -259,14 +256,15 @@ pub const Options = struct {
         });
 
         const rgfw_options = b.addOptions();
-        inline for (std.meta.fields(@TypeOf(self))) |field| {
-            if (comptime std.mem.eql(u8, field.name, "target") or
-                std.mem.eql(u8, field.name, "optimize"))
+        const self_info = @typeInfo(@TypeOf(self)).@"struct";
+        inline for (self_info.field_names, self_info.field_types) |field_name, FieldType| {
+            if (comptime std.mem.eql(u8, field_name, "target") or
+                std.mem.eql(u8, field_name, "optimize"))
             {
                 continue;
             }
 
-            rgfw_options.addOption(@TypeOf(@field(self, field.name)), field.name, @field(self, field.name));
+            rgfw_options.addOption(FieldType, field_name, @field(self, field_name));
         }
 
         const mod = b.createModule(.{
@@ -312,7 +310,7 @@ pub const Options = struct {
             mod.addCMacro("RGFW_EGL", "");
             mod.addCMacro("RGFW_OPENGL", ""); // EGL on Windows requires nativeGL_handle (defined under RGFW_OPENGL)
             const egl_sdk = b.option([]const u8, "egl_sdk", "Path to EGL SDK root (overrides EGL_SDK env var)") orelse
-                (getEnv(b.allocator, "EGL_SDK") orelse {
+                (getEnv(b, "EGL_SDK") orelse {
                     std.log.err(
                         \\EGL support requires the EGL_SDK environment variable.
                         \\
@@ -358,7 +356,7 @@ pub const Options = struct {
             mod.addCMacro("RGFW_VULKAN", "");
             mod.addCMacro("VK_USE_PLATFORM_WIN32_KHR", "");
             const vulkan_sdk = b.option([]const u8, "vulkan_sdk", "Path to Vulkan SDK root (overrides VULKAN_SDK env var)") orelse
-                (getEnv(b.allocator, "VULKAN_SDK") orelse {
+                (getEnv(b, "VULKAN_SDK") orelse {
                     std.log.err(
                         \\Vulkan support requires the VULKAN_SDK environment variable.
                         \\
@@ -473,14 +471,15 @@ pub fn build(b: *std.Build) void {
     const optimize = options.optimize orelse b.standardOptimizeOption(.{});
 
     const rgfw_options = b.addOptions();
-    inline for (std.meta.fields(@TypeOf(options))) |field| {
-        if (comptime std.mem.eql(u8, field.name, "target") or
-            std.mem.eql(u8, field.name, "optimize"))
+    const options_info = @typeInfo(@TypeOf(options)).@"struct";
+    inline for (options_info.field_names, options_info.field_types) |field_name, FieldType| {
+        if (comptime std.mem.eql(u8, field_name, "target") or
+            std.mem.eql(u8, field_name, "optimize"))
         {
             continue;
         }
 
-        rgfw_options.addOption(@TypeOf(@field(options, field.name)), field.name, @field(options, field.name));
+        rgfw_options.addOption(FieldType, field_name, @field(options, field_name));
     }
 
     const mod = b.addModule("rgfw", .{
@@ -532,7 +531,7 @@ pub fn build(b: *std.Build) void {
         mod.addCMacro("RGFW_OPENGL", ""); // EGL on Windows requires nativeGL_handle (defined under RGFW_OPENGL)
         // EGL_SDK env var is required: must point to the root of an EGL implementation
         const egl_sdk = b.option([]const u8, "egl_sdk", "Path to EGL SDK root (overrides EGL_SDK env var)") orelse
-            (getEnv(b.allocator, "EGL_SDK") orelse {
+            (getEnv(b, "EGL_SDK") orelse {
                 std.log.err(
                     \\EGL support requires the EGL_SDK environment variable.
                     \\
@@ -582,7 +581,7 @@ pub fn build(b: *std.Build) void {
         mod.addCMacro("VK_USE_PLATFORM_WIN32_KHR", "");
         // VULKAN_SDK env var is required: must point to the root of a Vulkan SDK
         const vulkan_sdk = b.option([]const u8, "vulkan_sdk", "Path to Vulkan SDK root (overrides VULKAN_SDK env var)") orelse
-            (getEnv(b.allocator, "VULKAN_SDK") orelse {
+            (getEnv(b, "VULKAN_SDK") orelse {
                 std.log.err(
                     \\Vulkan support requires the VULKAN_SDK environment variable.
                     \\
@@ -726,7 +725,7 @@ pub fn build(b: *std.Build) void {
 
     // WebGPU example (requires rgfw_webgpu and WGPU_SDK env var)
     const wgpu_sdk = b.option([]const u8, "wgpu_sdk", "Path to WebGPU SDK root (overrides WGPU_SDK env var)") orelse
-        (getEnv(b.allocator, "WGPU_SDK") orelse null);
+        (getEnv(b, "WGPU_SDK") orelse null);
 
     if (wgpu_sdk) |sdk| {
         const wgpu_include = std.fs.path.join(b.allocator, &[_][]const u8{ sdk, "include" }) catch @panic("OOM");
