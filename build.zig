@@ -278,6 +278,14 @@ pub const Options = struct {
         mod.addOptions("rgfw_options", rgfw_options);
         mod.addIncludePath(self_dep.path("."));
         mod.addCSourceFile(.{ .file = self_dep.path("RGFW.c"), .flags = &.{"-Wno-nullability-completeness"} });
+        // C translation of rgfw_import.h (replaces removed `@cImport`).
+        // Uses the same include path; macros are mirrored below once set.
+        const translate_c = b.addTranslateC(.{
+            .root_source_file = self_dep.path("rgfw_import.h"),
+            .target = target,
+            .optimize = optimize,
+        });
+        translate_c.addIncludePath(self_dep.path("."));
         if (target.result.os.tag != .emscripten) {
             if (target.result.os.tag == .windows) {
                 mod.linkSystemLibrary("opengl32", .{});
@@ -348,6 +356,7 @@ pub const Options = struct {
             const lib_path = std.fs.path.join(b.allocator, &[_][]const u8{ egl_sdk, lib_name }) catch @panic("OOM");
 
             mod.addIncludePath(.{ .cwd_relative = include_path });
+            translate_c.addIncludePath(.{ .cwd_relative = include_path });
             mod.addLibraryPath(.{ .cwd_relative = lib_path });
             mod.linkSystemLibrary("libEGL.dll", .{});
         }
@@ -393,6 +402,7 @@ pub const Options = struct {
             const lib_path = std.fs.path.join(b.allocator, &[_][]const u8{ vulkan_sdk, lib_name }) catch @panic("OOM");
 
             mod.addIncludePath(.{ .cwd_relative = include_path });
+            translate_c.addIncludePath(.{ .cwd_relative = include_path });
             mod.addLibraryPath(.{ .cwd_relative = lib_path });
             mod.linkSystemLibrary("vulkan-1", .{});
         }
@@ -461,6 +471,11 @@ pub const Options = struct {
         if (self.rgfw_max_events) |val| mod.addCMacro("RGFW_MAX_EVENTS", b.fmt("{d}", .{val}));
         if (self.rgfw_xdnd_version) |val| mod.addCMacro("RGFW_XDND_VERSION", b.fmt("{d}", .{val}));
 
+        // Mirror the exact -D flags onto the C translation so the translated
+        // header sees the same feature macros the C compilation does.
+        for (mod.c_macros.items) |flag| translate_c.addCFlags(&.{flag});
+        mod.addImport("c", translate_c.createModule());
+
         return mod;
     }
 };
@@ -493,6 +508,13 @@ pub fn build(b: *std.Build) void {
     mod.addOptions("rgfw_options", rgfw_options);
     mod.addIncludePath(b.path("."));
     mod.addCSourceFile(.{ .file = b.path("RGFW.c"), .flags = &.{"-Wno-nullability-completeness"} });
+    // C translation of rgfw_import.h (replaces removed `@cImport`).
+    const translate_c = b.addTranslateC(.{
+        .root_source_file = b.path("rgfw_import.h"),
+        .target = target,
+        .optimize = optimize,
+    });
+    translate_c.addIncludePath(b.path("."));
     if (target.result.os.tag != .emscripten) {
         if (target.result.os.tag == .windows) {
             mod.linkSystemLibrary("opengl32", .{});
@@ -689,6 +711,11 @@ pub fn build(b: *std.Build) void {
     if (options.rgfw_preallocated_monitors) |val| mod.addCMacro("RGFW_PREALLOCATED_MONITORS", b.fmt("{d}", .{val}));
     if (options.rgfw_max_events) |val| mod.addCMacro("RGFW_MAX_EVENTS", b.fmt("{d}", .{val}));
     if (options.rgfw_xdnd_version) |val| mod.addCMacro("RGFW_XDND_VERSION", b.fmt("{d}", .{val}));
+
+    // Mirror the exact -D flags onto the C translation so the translated
+    // header sees the same feature macros the C compilation does.
+    for (mod.c_macros.items) |flag| translate_c.addCFlags(&.{flag});
+    mod.addImport("c", translate_c.createModule());
 
     // Test step — reuses the rgfw module (with all C macros from above)
     const test_mod = b.createModule(.{

@@ -4,9 +4,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 pub const opts = @import("rgfw_options");
-const c = @cImport({
-    @cInclude("rgfw_import.h");
-});
+const c = @import("c");
 
 const backend = switch (builtin.target.os.tag) {
     .emscripten => @import("emscripten.zig"),
@@ -2366,7 +2364,9 @@ pub const monitor = struct {
     pub fn findClosestMode(mon: *Monitor, mode: *MonitorMode) ?MonitorMode {
         var closest: c.RGFW_monitorMode = undefined;
         if (!boolFromC(c.RGFW_monitor_findClosestMode(cMonitor(mon), ptrCast(*c.RGFW_monitorMode, mode), &closest))) return null;
-        return @bitCast(closest);
+        // Same layout by design (Zig mirror of the C struct); pun via pointer
+        // since 0.17 disallows @bitCast on extern structs.
+        return @as(*const MonitorMode, @ptrCast(&closest)).*;
     }
 
     /// Get an allocated gamma ramp for a monitor.
@@ -2454,7 +2454,9 @@ pub const monitor = struct {
     pub fn getMode(mon: *Monitor) ?MonitorMode {
         var mode: c.RGFW_monitorMode = undefined;
         if (!boolFromC(c.RGFW_monitor_getMode(cMonitor(mon), &mode))) return null;
-        return @bitCast(mode);
+        // Same layout by design (Zig mirror of the C struct); pun via pointer
+        // since 0.17 disallows @bitCast on extern structs.
+        return @as(*const MonitorMode, @ptrCast(&mode)).*;
     }
 
     /// Request a specific display mode for a monitor (selects closest match).

@@ -1,24 +1,24 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
-var debug_allocator = std.heap.DebugAllocator(.{}){};
+var safe_allocator: std.heap.SafeAllocator = .init(std.heap.page_allocator, .{});
 
 pub const allocator = blk: {
     if (builtin.mode == .debug) {
-        break :blk debug_allocator.allocator();
+        break :blk safe_allocator.allocator();
     } else {
         break :blk std.heap.smp_allocator;
     }
 };
 
-/// Deinitializes the backing `DebugAllocator` and reports leaks.
+/// Deinitializes the backing `SafeAllocator` and reports leaks.
 /// Returns `null` when the current `allocator` has no leak checking
 /// (any non-`Debug` build), otherwise returns `std.heap.Check`
 /// (`.ok` when everything was freed, `.leak` otherwise).
 /// Call once at the very end of the program, after all frees.
 pub fn tryDeinitAllocator() ?std.heap.Check {
     if (builtin.mode != .debug) return null;
-    return debug_allocator.deinit();
+    return if (safe_allocator.deinit() == 0) .ok else .leak;
 }
 
 pub fn createLogger(

@@ -23,7 +23,7 @@ test "opaque handle types" {
 }
 
 test "error type" {
-    try std.testing.expectEqual(@typeInfo(rgfw.Error).error_set.?.len, 1);
+    try std.testing.expectEqual(@typeInfo(rgfw.Error).error_set.error_names.?.len, 1);
 }
 
 test "Key enum — last field is 255, all named variants present" {
@@ -94,8 +94,8 @@ test "EventFlag packed struct — field count" {
     comptime {
         const info = @typeInfo(rgfw.EventFlag).@"struct";
         var count: usize = 0;
-        for (info.fields) |f| {
-            if (!std.mem.startsWith(u8, f.name, "_")) count += 1;
+        for (info.field_names) |fname| {
+            if (!std.mem.startsWith(u8, fname, "_")) count += 1;
         }
         try std.testing.expectEqual(24, count);
     }
